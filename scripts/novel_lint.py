@@ -12,6 +12,9 @@
   G 作品固有    glossary.toml の禁止語彙・表記ゆれ（--project 指定時）
   O 冒頭と結び  ありがちな入り方・締め方の型（参考情報）
 
+作中文書（チャット・メール・手紙・貼り紙）の範囲は、文面の各行の頭に全角 ＞ を付けて明示できる（任意。references/notation.md §3）。
+明示した行の表記は N09（要確認）に回り、字下げの検査と文の統計から外れる。数え上げ（C）と Markdown 装飾（N07）は文面にも当たる。
+
 考え方:
   - FAIL にするのは、表記の機械的な誤り（N）、数え上げの不一致（C）、本文が空（M01）だけ。統計と密度は INFO / WARN / 強WARN の警報。
   - 警報は検知器であって判決ではない。ヒットごとに fix か keep を選ぶ。目標の比率は無く、警報をゼロにすることも目標にしない。
@@ -350,16 +353,35 @@ class Config:
 # ---------------------------------------------------------------------------
 # 本文の分解
 # ---------------------------------------------------------------------------
+# 作中文書（チャット・メール・手紙・貼り紙）の範囲を原稿の中で明示する記号。行頭の全角 ＞ 1 字（export.py / count_chars.py と同じ定義）。
+# ＞ だけの行は文書の中の空行。行頭の ＞ を本文として残すときは、その前に \ か ＼ を置く。
+DOC_PREFIX = chr(0xFF1E)
+DOC_ESCAPES = (chr(0x5C) + DOC_PREFIX, chr(0xFF3C) + DOC_PREFIX)
+
+
 class Doc:
-    """1 段落 1 行の本文を、地の文・台詞・文に分解して持つ。行番号は元ファイルのもの。"""
+    """1 段落 1 行の本文を、地の文・台詞・作中文書・文に分解して持つ。行番号は元ファイルのもの。
+
+    行頭の ＞ で明示された作中文書（kind="document"）は、字数には入れるが、地の文と台詞のどちらにも数えない。
+    文長・文末・段落の統計には入れず、同一文末の連続もそこで切る（前後の地の文をつながない）。"""
 
     def __init__(self, text: str):
-        self.raw_lines = text.lstrip("﻿").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        source = text.lstrip(chr(0xFEFF)).replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        self.explicit_doc = set()   # ＞ で明示された行の番号（＞ だけの行を含む）
+        self.raw_lines = []         # 印（＞ かエスケープ）を 1 字だけ外した行。以後の検査はこちらを見る
+        for i, raw in enumerate(source, 1):
+            if raw.startswith(DOC_PREFIX):
+                self.explicit_doc.add(i)
+                raw = raw[1:]
+            elif raw.startswith(DOC_ESCAPES):
+                raw = raw[1:]
+            self.raw_lines.append(raw)
         self.paras = []        # dict(line, raw, body, kind, narr, sents=[(text, cls, is_tag)], n_utt)
         self.dialogues = []    # (line, text)
         self.unbalanced = []   # (line, excerpt) 括弧が行内で閉じていない
         for i, raw in enumerate(self.raw_lines, 1):
-            if not raw.strip() or HEADING.match(raw):
+            in_doc = i in self.explicit_doc
+            if not raw.strip() or (HEADING.match(raw) and not in_doc):      # 文書の中の「# 件名」は文面
                 continue
             if not has_letters(raw) and not re.search(r"[「『]", raw):
                 continue           # ＊ や …… だけの行（場面転換・飾り）。無言の台詞「……」は本文として残す
@@ -367,6 +389,10 @@ class Doc:
             body = clean.lstrip(" \t　")
             if not brackets_balanced(body):
                 self.unbalanced.append((i, excerpt(body)))
+            if in_doc:
+                self.paras.append(dict(line=i, raw=raw, clean=clean, body=body, kind="document", narr="", sents=[], n_utt=0,
+                                       indented=False, starts_quote=False, lead=""))
+                continue
             for a, b in utterance_spans(body):
                 self.dialogues.append((i, body[a + 1:b - 1]))
             marked = strip_all_quotes(body, MARK)
@@ -520,7 +546,7 @@ DOCUMENT_CUE = re.compile(r"チャット|メール|メッセージ|手紙|便箋
 def indent_candidates(doc: Doc):
     """字下げの有無を問える段落。括弧始まり、英数字始まり（英文の手紙・番号）、
     文として終わっていない行（拝啓・敬具、「件名：帰宅時間」のような項目、看板の文面）は数えない。"""
-    return [p for p in doc.paras if not p["body"].startswith(NO_INDENT_OPENERS)
+    return [p for p in doc.paras if p["kind"] != "document" and not p["body"].startswith(NO_INDENT_OPENERS)
             and not re.match(r"[A-Za-z0-9Ａ-Ｚａ-ｚ０-９]", p["body"])
             and re.search(r"[。！？!?…―」』）)]$", p["body"].rstrip())
             and not re.match(r"[^。、]{1,8}[：:]", p["body"])]
@@ -535,7 +561,8 @@ def document_lines(doc: Doc) -> set:
         return set()      # 字下げなしで統一された原稿には、文書のまとまりを見分ける手がかりが無い
     lines, run, prev = set(), [], None
     for p in doc.paras + [None]:
-        loose = p is not None and p["lead"] != "　" and not p["body"].startswith(NO_INDENT_OPENERS)
+        explicit = p is not None and p["kind"] == "document"      # ＞ で明示された文書は推定の対象外。字下げの無い行のまとまりもそこで切る
+        loose = p is not None and not explicit and p["lead"] != "　" and not p["body"].startswith(NO_INDENT_OPENERS)
         if loose:
             if not run:
                 run_has_intro = prev is not None      # 文書は、それを導入する地の文の段落のあとに来る。原稿の冒頭から続く字下げの乱れは下げ忘れ
@@ -545,9 +572,47 @@ def document_lines(doc: Doc) -> set:
             if run and ((len(run) >= 2 and run_has_intro) or run_cue):
                 lines.update(q["line"] for q in run)
             run = []
-        if p is not None and not loose:
+        if p is not None and not loose and not explicit:
             prev = p
     return lines
+
+
+# 字下げの無い原稿では、作中文書を体裁から見分けられない。直前の行が「メッセージが届いた。」のように
+# 文書を導入して終わっているときだけ、続く数行を「作中文書かもしれない行」として案内する（判定は変えない）。
+DOC_INTRO = re.compile(
+    r"(?:チャット|メール|メッセージ|ＬＩＮＥ|LINE|ライン|ＤＭ|DM|ショートメール|手紙|便箋|葉書|はがき|書き置き|置き手紙|メモ|伝言|通知|貼り紙|張り紙|掲示|画面|文面|返信|返事)"
+    r"[^。、！？!?「」『』]{0,14}?"
+    r"(?:開いた|開く|開けた|届いた|届く|届いていた|来た|きた|来ていた|きていた|入った|入っていた|読んだ|読む|読み返した|読み上げた|見た|見る|"
+    r"表示された|表示されていた|出ていた|あった|書かれていた|書いてあった|残っていた|残されていた|だった|である)[。：:]?$")
+DOC_GUESS_MAX_LINES = 3
+
+
+def guessed_document_blocks(doc: Doc) -> list:
+    """字下げの無い原稿で、作中文書かもしれない行のまとまりを [[行番号, ...], ...] で返す。案内（N10）専用。
+
+    導入の行の直後（空行は 1 つまで挟んでよい）から、物理的に隣り合う行を最大 DOC_GUESS_MAX_LINES 行。
+    空行・見出し・場面転換・＞ の行・字下げされた行・「 で始まる行で止める。どこで地の文に戻るかは決められないので、
+    これを根拠に FAIL を下げたり統計から外したりはしない。"""
+    if any(p["indented"] for p in doc.paras):
+        return []      # 字下げのある原稿は document_lines() が体裁で見分ける
+    by_line = {p["line"]: p for p in doc.paras}
+    blocks = []
+    for p in doc.paras:
+        if p["kind"] == "document" or not DOC_INTRO.search(p["clean"].rstrip()):
+            continue
+        ln = p["line"] + 1
+        if ln not in by_line and ln <= len(doc.raw_lines) and not doc.raw_lines[ln - 1].strip() and ln not in doc.explicit_doc:
+            ln += 1      # 導入の行と文面のあいだの空行 1 つ
+        block = []
+        while len(block) < DOC_GUESS_MAX_LINES and ln in by_line:
+            q = by_line[ln]
+            if q["kind"] == "document" or q["lead"] or q["body"].startswith(("「", "『")):
+                break
+            block.append(ln)
+            ln += 1
+        if block:
+            blocks.append(block)
+    return blocks
 
 
 def check_notation(doc: Doc, rep: Report):
@@ -566,7 +631,7 @@ def check_notation(doc: Doc, rep: Report):
         carried_cue = whole_line_quote and all(r[2] == "other" for r in roles) and (
             carried_cue or MENTION_CUE.search(prev_text) is not None or DOCUMENT_CUE.search(prev_text) is not None)
         prev_text = s
-        in_document = ln in doc_lines
+        in_document = ln in doc_lines or p["kind"] == "document"
 
         def in_label(pos):
             head = s[:pos]
@@ -622,6 +687,14 @@ def check_notation(doc: Doc, rep: Report):
     if doc.unbalanced:
         rep.add("N08", "WARN", "括弧の対応", f"{len(doc.unbalanced)} 行。「」『』が行の中で閉じていない（1 段落 1 行が前提。台詞の統計は不確か）",
                 doc.unbalanced, "台詞の途中で改行していないか、閉じ忘れが無いか")
+    # N10 字下げの無い原稿で、表記の FAIL が「文書を導入する行」の直後にあるとき、範囲の明示を案内する。FAIL はそのまま残す
+    flagged = {ln for ln, _ in n01 + n02 + n03 + n04}
+    guessed = [b for b in guessed_document_blocks(doc) if flagged & set(b)]
+    if guessed:
+        by_line = {p["line"]: p for p in doc.paras}
+        rep.add("N10", "INFO", "作中文書かもしれない行", f"{len(guessed)} 箇所。直前の行が文書（チャット・メール・手紙など）を導入していて、続く行に N01〜N04 がある",
+                [(b[0], f"{excerpt(by_line[b[0]]['clean'], 16)}（ここから最大 {len(b)} 行。どこまでが文面かは推定していない）") for b in guessed],
+                "文面なら、その行の頭に全角の ＞ を付けて範囲を明示する（以後その行の表記は N09 の確認扱いになり、統計からも外れる）。地の文なら N01〜N04 のとおり直す")
     odd_all = [p for p in doc.paras if p["lead"] not in ("", "　")]
     odd_lead = [(p["line"], excerpt(p["raw"])) for p in odd_all if p["line"] not in doc_lines]
     odd_doc = [(p["line"], excerpt(p["raw"])) for p in odd_all if p["line"] in doc_lines]
@@ -667,7 +740,7 @@ def collect_stats(doc: Doc, cfg: Config) -> dict:
     sents = []   # (line, text, cls, is_tag)
     tokens = []  # 文末クラス列。純台詞段落は "D" で run を切る
     for p in doc.paras:
-        if p["kind"] == "dialogue":
+        if p["kind"] in ("dialogue", "document"):      # 作中文書でも同一文末の連続を切る
             tokens.append(("D", p["line"], ""))
             continue
         for text, cls, is_tag in p["sents"]:
@@ -875,7 +948,7 @@ def check_dialogue(doc: Doc, rep: Report, st: dict):
         win = cfg.rule("D03").get("window", 300)
         pos, marks = 0, []
         for p in doc.paras:
-            for _ in range(p["n_utt"] if p["kind"] == "dialogue" else len(QUOTE.findall(p["body"]))):
+            for _ in range(p["n_utt"] if p["kind"] in ("dialogue", "document") else len(QUOTE.findall(p["body"]))):
                 marks.append((pos, p["line"]))
             pos += nws(p["clean"])
         locs, i, last_end = [], 0, -1
@@ -1345,7 +1418,7 @@ def check_leak_and_glossary(doc: Doc, rep: Report):
         locs = []
         for p in doc.paras:
             if word in p["clean"]:
-                where = "地の文" if word in p["narr"] else "台詞"
+                where = "作中文書" if p["kind"] == "document" else "地の文" if word in p["narr"] else "台詞"
                 locs.append((p["line"], f"{where}: {excerpt(p['clean'][max(0, p['clean'].find(word) - 8):], 22)}"))
         if locs:
             rep.add("G01", "WARN", f"世界制約の禁止語彙「{word}」", f"{len(locs)} 箇所", locs, "この世界・時代に無い語。言い換えでなく、その世界にある物で書く")

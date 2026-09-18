@@ -57,6 +57,12 @@ OPEN_BRACKETS = "「『（【〈《"
 DIALOGUE_BRACKETS = "「『"
 # 「……」「！？」だけの行は沈黙や絶句を表す地の文。◇ や ※ のような飾り行と区別する（罫線代わりのダッシュだけの行は飾り）。
 SILENT_PROSE_RE = re.compile(r"^[…‥！？!?。、―—\s]*[…‥！？!?][…‥！？!?。、―—\s]*$")
+# 作中文書（チャット・メール・手紙・貼り紙）の範囲を原稿の中で明示する記号。行頭の全角 ＞ 1 字。
+# ＞ だけの行は文書の中の空行。行頭の ＞ を本文として残したいときは、その前に \ か ＼ を置く。
+# 半角の > は Markdown の引用と見分けられないので、この記法には使わない。
+DOC_PREFIX = chr(0xFF1E)
+DOC_ESCAPES = (chr(0x5C) + DOC_PREFIX, chr(0xFF3C) + DOC_PREFIX)
+DOC_KINDS = ("document", "docblank")
 # ---------------------------------------------------------------------------
 
 # 傍点とルビを 1 回の走査で拾う。傍点を選択肢の先頭に置くことで「傍点が先」の順序を固定し、
@@ -157,7 +163,7 @@ class Report:
     stats: dict = field(default_factory=lambda: {
         "ruby": 0, "emphasis": 0, "scene_breaks": 0, "headings": [],
         "indent_added": 0, "indent_removed": 0, "indent_already": 0, "indent_skipped": 0,
-        "lines": 0,
+        "lines": 0, "document_lines": 0,
     })
     warnings: list = field(default_factory=list)
 
@@ -182,11 +188,27 @@ def is_symbol_only(stripped: str) -> bool:
     return True
 
 
+def split_doc_prefix(line: str) -> tuple:
+    """(印, 本文) を返す。印は "document"（＞ を 1 個外した）/ "escaped"（エスケープを 1 字外した）/ ""。
+
+    外すのは行頭の 1 字だけ。続く空白や 2 個目の ＞ は文面なので触らない。
+    """
+    if line.startswith(DOC_PREFIX):
+        return "document", line[1:]
+    if line.startswith(DOC_ESCAPES):
+        return "escaped", line[1:]
+    return "", line
+
+
 def classify_line(line: str) -> str:
-    """行を blank / heading / scene / symbol / dialogue / bracket / narration に分ける。
+    """行を blank / heading / scene / symbol / dialogue / bracket / narration / document / docblank に分ける。
 
     字下げするのは narration だけ。会話・心内語の括弧始まり、場面転換行、空行、見出しは下げない。
     """
+    mark, line = split_doc_prefix(line)
+    if mark == "document":
+        # 文書の中の「# 件名」や「＊」は文面であって、見出し・場面転換ではない。
+        return "document" if line.strip() else "docblank"
     stripped = line.strip()
     if not stripped:
         return "blank"
@@ -302,6 +324,10 @@ def needs_gap(prev_kind: str, kind: str, policy: str) -> bool:
     separators = ("scene", "symbol", "heading")
     if prev_kind in separators or kind in separators:
         return True  # 場面転換と見出しの前後はどの方針でも空ける
+    if (prev_kind in DOC_KINDS) != (kind in DOC_KINDS):
+        return True  # 作中文書のまとまりの外周は、どの方針でも空ける
+    if prev_kind in DOC_KINDS:
+        return False  # 文書の中の改行と空行は原稿のまま（空行は ＞ だけの行で書く）
     if policy == "para":
         return True
     if policy == "dialogue":
@@ -313,12 +339,17 @@ def apply_blank_policy(items: list, policy: str) -> list:
     """items は (kind, text) の列。keep 以外は原稿の空行を捨てて方針どおりに入れ直す。"""
     if policy == "keep":
         return items
-    body = [item for item in items if item[0] != "blank"]
-    out = []
-    for i, item in enumerate(body):
-        if i > 0 and needs_gap(body[i - 1][0], item[0], policy):
+    out, prev_kind, blank_seen = [], None, False
+    for item in items:
+        if item[0] == "blank":
+            blank_seen = True
+            continue
+        # 空行を挟んで並んだ 2 つの作中文書は別の文書。1 つにつなげない。
+        split_docs = blank_seen and prev_kind in DOC_KINDS and item[0] in DOC_KINDS
+        if prev_kind is not None and (split_docs or needs_gap(prev_kind, item[0], policy)):
             out.append(("blank", ""))
         out.append(item)
+        prev_kind, blank_seen = item[0], False
     return out
 
 
@@ -329,11 +360,21 @@ def convert_text(text: str, opts: Options) -> tuple:
     indented = plain = 0
     for line_no, line in enumerate(text.split(LF), 1):
         kind = classify_line(line)
+        line = split_doc_prefix(line)[1]  # 内部記法の印（＞ かエスケープ）を 1 字だけ外す。投稿先には出さない
         inspect_line(line, line_no, kind, opts, report)
         if kind == "blank":
             items.append((kind, line))
             continue
+        if kind == "docblank":
+            report.stats["document_lines"] += 1
+            items.append((kind, ""))
+            continue
         report.stats["lines"] += 1
+        if kind == "document":
+            # 文面は字下げも空行方針も当てず、ルビ・傍点だけを出力先の記法にする。
+            report.stats["document_lines"] += 1
+            items.append((kind, render_inline(line, line_no, opts, report)))
+            continue
         if kind == "heading":
             title = HEADING_RE.match(line).group(1)
             report.stats["headings"].append(title)
@@ -393,7 +434,11 @@ def project_source(text: str, opts: Options) -> list:
     """
     out = []
     for line_no, line in enumerate(text.split(LF), 1):
-        m = HEADING_RE.match(line)
+        # 作中文書の印は原稿側でだけ外す。出力側では外さないので、印が出力に残れば不一致になる。
+        in_document = line.startswith(DOC_PREFIX)
+        if in_document or line.startswith(DOC_ESCAPES):
+            line = line[1:]
+        m = None if in_document else HEADING_RE.match(line)
         if m:
             if opts.heading == "drop":
                 continue
@@ -650,6 +695,8 @@ def describe_notation(opts: Options, stats: dict) -> str:
         emph_how = "そのまま" if opts.target == "plain" else "未対応。原稿の記法のまま"
     parts = [f"ルビ {stats['ruby']} 件（{ruby_how}）", f"傍点 {stats['emphasis']} 件（{emph_how}）",
              f"場面転換 {stats['scene_breaks']} 行"]
+    if stats.get("document_lines"):
+        parts.append(f"作中文書 {stats['document_lines']} 行（行頭の ＞ を外した）")
     if stats["headings"]:
         how = {"drop": "本文から外した。サイトの題欄へ", "text": "題の行として残した",
                "keep": "そのまま", "chapter": "[chapter:題] へ"}[opts.heading]

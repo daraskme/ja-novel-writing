@@ -54,6 +54,12 @@ OPEN_BRACKETS = "「『（【〈《"
 DIALOGUE_BRACKETS = "「『"
 # 「……」「！？」だけの行は沈黙や絶句を表す地の文。◇ や ※ のような飾り行と区別する（罫線代わりのダッシュだけの行は飾り）。
 SILENT_PROSE_RE = re.compile(r"^[…‥！？!?。、―—\s]*[…‥！？!?][…‥！？!?。、―—\s]*$")
+# 作中文書（チャット・メール・手紙・貼り紙）の範囲を原稿の中で明示する記号。行頭の全角 ＞ 1 字。
+# ＞ だけの行は文書の中の空行。行頭の ＞ を本文として残したいときは、その前に \ か ＼ を置く。
+# 半角の > は Markdown の引用と見分けられないので、この記法には使わない。
+DOC_PREFIX = chr(0xFF1E)
+DOC_ESCAPES = (chr(0x5C) + DOC_PREFIX, chr(0xFF3C) + DOC_PREFIX)
+DOC_KINDS = ("document", "docblank")
 # ---------------------------------------------------------------------------
 
 # 「!?」「!!」を 1 マスに数える公募がある（ファンタジア大賞の公式 Q&A）。
@@ -86,11 +92,27 @@ def is_symbol_only(stripped: str) -> bool:
     return True
 
 
+def split_doc_prefix(line: str) -> tuple:
+    """(印, 本文) を返す。印は "document"（＞ を 1 個外した）/ "escaped"（エスケープを 1 字外した）/ ""。
+
+    外すのは行頭の 1 字だけ。続く空白や 2 個目の ＞ は文面なので触らない。
+    """
+    if line.startswith(DOC_PREFIX):
+        return "document", line[1:]
+    if line.startswith(DOC_ESCAPES):
+        return "escaped", line[1:]
+    return "", line
+
+
 def classify_line(line: str) -> str:
-    """行を blank / heading / scene / symbol / dialogue / bracket / narration に分ける。
+    """行を blank / heading / scene / symbol / dialogue / bracket / narration / document / docblank に分ける。
 
     字下げの要否と「本文として数えるか」の両方がこの分類で決まる。
     """
+    mark, line = split_doc_prefix(line)
+    if mark == "document":
+        # 文書の中の「# 件名」や「＊」は文面であって、見出し・場面転換ではない。
+        return "document" if line.strip() else "docblank"
     stripped = line.strip()
     if not stripped:
         return "blank"
@@ -141,7 +163,10 @@ def count_raw(text: str, with_markup: bool = False) -> int:
     body = _trim_eof(text)
     if with_markup:
         return len(body)
-    lines = [heading_title(line) for line in body.split("\n")]
+    lines = []
+    for line in body.split("\n"):
+        mark, rest = split_doc_prefix(line)      # 作中文書の印は投稿先に出ないので数えない。文面は数える
+        lines.append(rest if mark == "document" else heading_title(rest))
     return len(strip_markup("\n".join(lines)))
 
 
@@ -151,7 +176,11 @@ def count_narou(text: str) -> int:
     見出し行は export がサイトの題欄へ回すので数えない。場面転換の記号は
     投稿すれば字として数えられるので残す。
     """
-    lines = [line for line in _trim_eof(text).split("\n") if not HEADING_RE.match(line)]
+    lines = []
+    for line in _trim_eof(text).split("\n"):
+        mark, rest = split_doc_prefix(line)
+        if mark == "document" or not HEADING_RE.match(rest):
+            lines.append(rest)
     body = strip_markup("\n".join(lines))
     return sum(1 for ch in body if not ch.isspace())
 
@@ -160,8 +189,12 @@ def count_body(text: str) -> int:
     """body: 本文だけ。空白・記法・見出し行・記号だけの行を除く。novel_lint の字数と同じ考え方。"""
     total = 0
     for line in text.split("\n"):
-        if classify_line(line) in ("blank", "heading", "scene", "symbol"):
+        kind = classify_line(line)
+        if kind in ("blank", "heading", "scene", "symbol", "docblank"):
             continue
+        line = split_doc_prefix(line)[1]
+        if kind == "document" and is_symbol_only(line.strip()):
+            continue      # 文書の中の飾り行（＊ や ―――― だけ）も本文には数えない
         total += sum(1 for ch in strip_markup(line) if not ch.isspace())
     return total
 
@@ -213,8 +246,9 @@ def flow_rows(text: str, width: int, hang: bool = False, pair_marks: bool = Fals
     rows = 0
     for line in body.split("\n"):
         kind = classify_line(line)
+        line = split_doc_prefix(line)[1]
         plain = strip_markup(heading_title(line) if kind == "heading" else line)
-        if kind == "blank":
+        if kind in ("blank", "docblank"):
             plain = ""
         cells = PAIR_MARKS_RE.findall(plain) if pair_marks else list(plain)
         # export で字下げを付ける運用の原稿は、地の文の段落頭に 1 マス足して数える。

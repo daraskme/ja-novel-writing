@@ -1,0 +1,19 @@
+{
+  "note": "由来を伏せた読み比べ（run_blind_eval.py）で使う依頼。依頼は番号でなく名前と本文のハッシュで識別する。from_evals は evals.json の name を指す。kind は判定役への問いの型（run_blind_eval.py の QUESTIONS）。min_chars / max_chars は依頼文が字数を指定しているときだけ書く（違反は選好と分けて記録する）。",
+  "prompts": [
+    {
+      "name": "graduation-confession",
+      "kind": "confession",
+      "min_chars": 1200,
+      "max_chars": 1500,
+      "text": "恋愛短編の山場の一場面だけ書いてほしい。高校の卒業式のあと、ずっと隠してきた気持ちを直球で告白する場面。感情はしっかり言葉にして、読んでて胸が熱くなるやつ。1200〜1500字。",
+      "history": "評価ラウンド 1 の「依頼 3」。evals.json の id 3（推敲）でも id 6（駅前の告白）でもない。この依頼での敗因を受けて結びの文言を直したので、未知の課題ではない。"
+    },
+    {"name": "flash-farewell-word", "kind": "flash", "from_evals": "flash-farewell-word"},
+    {"name": "flash-talkative-comedy", "kind": "comedy", "from_evals": "flash-talkative-comedy"},
+    {"name": "romance-direct-confession", "kind": "confession", "from_evals": "romance-direct-confession"},
+    {"name": "battle-spatial-causality", "kind": "battle", "from_evals": "battle-spatial-causality"},
+    {"name": "children-polite-repetition", "kind": "children", "from_evals": "children-polite-repetition"},
+    {"name": "web-episode-twelve-reminder", "kind": "serial", "from_evals": "web-episode-twelve-reminder"}
+  ]
+}
