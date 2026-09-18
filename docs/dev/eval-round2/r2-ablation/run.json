@@ -1,0 +1,123 @@
+{
+  "created": "2026-09-19T08:31:12",
+  "skill_repo": {
+    "commit": "0561228",
+    "dirty": false
+  },
+  "generator": {
+    "command": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+    "version": "codex-cli 0.155.1"
+  },
+  "arms": [
+    {
+      "label": "current",
+      "source": "skill",
+      "tree": "8dd360996c03"
+    },
+    {
+      "label": "ablated",
+      "source": "../blind-runs/ablated-skill",
+      "tree": "3e56c85c1f12"
+    }
+  ],
+  "comparison": "skill-vs-skill",
+  "trials": 2,
+  "prompts": [
+    {
+      "name": "graduation-confession",
+      "kind": "confession",
+      "text": "恋愛短編の山場の一場面だけ書いてほしい。高校の卒業式のあと、ずっと隠してきた気持ちを直球で告白する場面。感情はしっかり言葉にして、読んでて胸が熱くなるやつ。1200〜1500字。",
+      "hash": "afba44ea0cb1",
+      "min_chars": 1200,
+      "max_chars": 1500
+    }
+  ],
+  "generations": [
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 1,
+      "arm": "current",
+      "path": "gen/graduation-confession/t1/current.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 171.8,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "ea257cac4fa1a97e"
+    },
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 1,
+      "arm": "ablated",
+      "path": "gen/graduation-confession/t1/ablated.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 186.1,
+          "ok": true
+        }
+      ],
+      "source": "../blind-runs/ablated-skill",
+      "tree": "3e56c85c1f12",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "145cebef520a6f92"
+    },
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 2,
+      "arm": "current",
+      "path": "gen/graduation-confession/t2/current.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 175.1,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "25d479bb4e15f41f"
+    },
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 2,
+      "arm": "ablated",
+      "path": "gen/graduation-confession/t2/ablated.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 168.9,
+          "ok": true
+        }
+      ],
+      "source": "../blind-runs/ablated-skill",
+      "tree": "3e56c85c1f12",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "0c50ead6bc10768a"
+    }
+  ],
+  "judge": {
+    "command": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+    "version": "codex-cli 0.155.1",
+    "seed": 2
+  },
+  "migrated": "レビュー 11 の前の実行器で生成。応答のハッシュと判定の成否は、保存済みのログと依頼文から起こした"
+}

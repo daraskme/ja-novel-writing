@@ -160,7 +160,7 @@ def count_raw(text: str, with_markup: bool = False) -> int:
 
     投稿上限の安全判定と、空白・改行を数える公募（ファンタジア型）に使う。
     """
-    body = _trim_eof(text)
+    body = _trim_eof(normalize_text(text))
     if with_markup:
         return len(body)
     lines = []
@@ -177,7 +177,7 @@ def count_narou(text: str) -> int:
     投稿すれば字として数えられるので残す。
     """
     lines = []
-    for line in _trim_eof(text).split("\n"):
+    for line in _trim_eof(normalize_text(text)).split("\n"):
         mark, rest = split_doc_prefix(line)
         if mark == "document" or not HEADING_RE.match(rest):
             lines.append(rest)
@@ -188,7 +188,7 @@ def count_narou(text: str) -> int:
 def count_body(text: str) -> int:
     """body: 本文だけ。空白・記法・見出し行・記号だけの行を除く。novel_lint の字数と同じ考え方。"""
     total = 0
-    for line in text.split("\n"):
+    for line in normalize_text(text).split("\n"):
         kind = classify_line(line)
         if kind in ("blank", "heading", "scene", "symbol", "docblank"):
             continue
@@ -240,7 +240,7 @@ def flow_rows(text: str, width: int, hang: bool = False, pair_marks: bool = Fals
 
     行頭・行末禁則による追い出しは再現しない簡易計算（ワープロの実測より少し短く出ることがある）。
     """
-    body = _trim_eof(text)
+    body = _trim_eof(normalize_text(text))
     if not body:
         return 0
     rows = 0
@@ -272,6 +272,11 @@ def pages_for(rows: int, height: int) -> tuple:
 def normalize_newlines(text: str) -> str:
     """CRLF / CR を LF に揃える（Windows で保存した原稿でも改行を 1 字と数えるため）。"""
     return text.replace(CR + LF, LF).replace(CR, LF)
+
+
+def normalize_text(text: str) -> str:
+    """先頭の BOM を外し、改行を LF に揃える。ファイルを読む経路と、関数を直接呼ぶ経路で数が分かれないようにする。"""
+    return normalize_newlines(text.lstrip(BOM))
 
 
 def read_text(path: str) -> str:

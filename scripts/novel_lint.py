@@ -357,6 +357,8 @@ class Config:
 # ＞ だけの行は文書の中の空行。行頭の ＞ を本文として残すときは、その前に \ か ＼ を置く。
 DOC_PREFIX = chr(0xFF1E)
 DOC_ESCAPES = (chr(0x5C) + DOC_PREFIX, chr(0xFF3C) + DOC_PREFIX)
+# 沈黙・絶句だけの行（…… や ！？）。文の統計には入れないが、本文の字数には入れる（export.py / count_chars.py の SILENT_PROSE_RE と同じ）
+SILENT_LINE = re.compile(r"^[…‥！？!?。、―—\s]*[…‥！？!?][…‥！？!?。、―—\s]*$")
 
 
 class Doc:
@@ -379,12 +381,17 @@ class Doc:
         self.paras = []        # dict(line, raw, body, kind, narr, sents=[(text, cls, is_tag)], n_utt)
         self.dialogues = []    # (line, text)
         self.unbalanced = []   # (line, excerpt) 括弧が行内で閉じていない
+        self.silent_lines = []  # (行番号, 本文) 沈黙だけの行（……）。段落にはしないが、字数と全文検索（約物の頻度）には入れる
         for i, raw in enumerate(self.raw_lines, 1):
             in_doc = i in self.explicit_doc
             if not raw.strip() or (HEADING.match(raw) and not in_doc):      # 文書の中の「# 件名」は文面
                 continue
             if not has_letters(raw) and not re.search(r"[「『]", raw):
-                continue           # ＊ や …… だけの行（場面転換・飾り）。無言の台詞「……」は本文として残す
+                # ＊ や …… だけの行（場面転換・飾り・沈黙）。無言の台詞「……」は本文として残す。
+                # 字数の数え方は count_chars.py の body に合わせる: 沈黙（……、！？）と丸括弧の行は数え、飾り（＊、――――）は数えない
+                if SILENT_LINE.match(raw.strip()) or "（" in raw:
+                    self.silent_lines.append((i, strip_notation(raw.rstrip())))
+                continue
             clean = strip_notation(raw.rstrip())
             body = clean.lstrip(" \t　")
             if not brackets_balanced(body):
@@ -417,16 +424,22 @@ class Doc:
                                    sents=sents, n_utt=max(n_utt, 1) if kind == "dialogue" else n_utt,
                                    indented=raw.startswith("　"), starts_quote=starts_quote,
                                    lead=re.match(r"[ \t　]*", raw).group(0)))
-        self.total_chars = sum(nws(p["clean"]) for p in self.paras)
+        self.total_chars = sum(nws(p["clean"]) for p in self.paras) + sum(nws(t) for _, t in self.silent_lines)
         self.narr_chars = sum(nws(p["narr"]) for p in self.paras)
         self.dlg_chars = sum(nws(d) for _, d in self.dialogues)
+
+    def document_between(self, line_a: int, line_b: int) -> bool:
+        """2 つの行のあいだに、＞ で明示された行があるか（＞ だけの行や、記号だけで段落にならなかった文面も含む）。
+        明示された文書は、文末の連続や「文書を導入する段落」の持ち越しをそこで切る境界になる。"""
+        return any(n in self.explicit_doc for n in range(line_a + 1, line_b))
 
     def narr_lines(self):
         """(行番号, 地の文) の列。密度系の検索対象。"""
         return [(p["line"], p["narr"]) for p in self.paras if nws(p["narr"])]
 
     def all_lines(self):
-        return [(p["line"], p["clean"]) for p in self.paras]
+        """(行番号, 本文) の列。全文を分母にする検索の対象。字数に入れた行は、ここにも入れる（分母だけ増えて検出が減るのを防ぐ）。"""
+        return sorted([(p["line"], p["clean"]) for p in self.paras] + self.silent_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -559,9 +572,18 @@ def document_lines(doc: Doc) -> set:
     cands = indent_candidates(doc)
     if len(cands) < 2 or not any(p["indented"] for p in cands):
         return set()      # 字下げなしで統一された原稿には、文書のまとまりを見分ける手がかりが無い
-    lines, run, prev = set(), [], None
+    lines, run, prev, last_line = set(), [], None, 0
     for p in doc.paras + [None]:
         explicit = p is not None and p["kind"] == "document"      # ＞ で明示された文書は推定の対象外。字下げの無い行のまとまりもそこで切る
+        # 明示された文書（段落にならなかった ＞ だけの行を含む）をまたいだら、まとまりを切り、導入の段落も持ち越さない。
+        # 「メールを開いた。」の効力は、その直後の明示された文面で使い切っている
+        crossed = p is not None and (explicit or doc.document_between(last_line, p["line"]))
+        if crossed:
+            if run and ((len(run) >= 2 and run_has_intro) or run_cue):
+                lines.update(q["line"] for q in run)
+            run, prev = [], None
+        if p is not None:
+            last_line = p["line"]
         loose = p is not None and not explicit and p["lead"] != "　" and not p["body"].startswith(NO_INDENT_OPENERS)
         if loose:
             if not run:
@@ -581,7 +603,7 @@ def document_lines(doc: Doc) -> set:
 # 文書を導入して終わっているときだけ、続く数行を「作中文書かもしれない行」として案内する（判定は変えない）。
 DOC_INTRO = re.compile(
     r"(?:チャット|メール|メッセージ|ＬＩＮＥ|LINE|ライン|ＤＭ|DM|ショートメール|手紙|便箋|葉書|はがき|書き置き|置き手紙|メモ|伝言|通知|貼り紙|張り紙|掲示|画面|文面|返信|返事)"
-    r"[^。、！？!?「」『』]{0,14}?"
+    r"(?:(?!だが|たが|けれど|けど|ので|のに|ながら|つつ|まま)[^。、！？!?「」『』]){0,14}?"
     r"(?:開いた|開く|開けた|届いた|届く|届いていた|来た|きた|来ていた|きていた|入った|入っていた|読んだ|読む|読み返した|読み上げた|見た|見る|"
     r"表示された|表示されていた|出ていた|あった|書かれていた|書いてあった|残っていた|残されていた|だった|である)[。：:]?$")
 DOC_GUESS_MAX_LINES = 3
@@ -615,9 +637,22 @@ def guessed_document_blocks(doc: Doc) -> list:
     return blocks
 
 
+def check_markdown(doc: Doc, rep: Report):
+    """N07。段落にならなかった行（記号だけの文面「**！**」、「* * *」）も見るので、段落でなく行を走査する。
+    本文の字数が 0 の原稿（記号だけ）でも走らせる。"""
+    n07 = []
+    for ln, raw in enumerate(doc.raw_lines, 1):
+        if raw.strip() and not (HEADING.match(raw) and ln not in doc.explicit_doc) and re.search(
+                r"\*\*[^*\n]+\*\*|__[^_\n]+__|^\s*(?:[-*+]|\d+\.)\s+\S|^\s*>\s|`[^`\n]+`", raw):
+            n07.append((ln, excerpt(raw)))
+    if n07:
+        rep.add("N07", "WARN", "Markdown 装飾", f"{len(n07)} 箇所。本文に太字・箇条書き・引用記号・コード記法がある", n07,
+                "小説の本文では使わない。強調は傍点 《《語》》 か、語順で")
+
+
 def check_notation(doc: Doc, rep: Report):
     cfg = rep.cfg
-    n01, n02, n03, n04, n06, n07 = [], [], [], [], [], []
+    n01, n02, n03, n04, n06 = [], [], [], [], []
     soft = []      # 台詞と分類できない引用の中や、作中文書らしい行の表記違反。題名や文字列そのものかもしれないので WARN
     doc_lines = document_lines(doc)
     prev_text, carried_cue = "", False
@@ -663,8 +698,6 @@ def check_notation(doc: Doc, rep: Report):
             (n04 if role == "speech" and not in_document else soft).append((ln, excerpt(s[max(0, m.start() - 10):m.end()])))
         for m in re.finditer(r"(?<=[ぁ-んァ-ヶ一-龥])[!?,](?![\w/])|(?<=[ぁ-んァ-ヶ一-龥])\((?=[ぁ-んァ-ヶ一-龥])|[｡､｢｣]", s):
             n06.append((ln, excerpt(s[max(0, m.start() - 8):m.end() + 4])))
-        if re.search(r"\*\*[^*\n]+\*\*|__[^_\n]+__|^\s*(?:[-*+]|\d+\.)\s+\S|^\s*>\s|`[^`\n]+`", p["raw"]):
-            n07.append((ln, excerpt(p["raw"])))
     if n01:
         rep.add("N01", "FAIL", "三点リーダーの形", f"{len(n01)} 箇所。「…」は 2 個 1 組（……）。「・・・」「...」は使わない", n01,
                 "…… に直す。頻度が気になるなら K02 を見る")
@@ -681,14 +714,12 @@ def check_notation(doc: Doc, rep: Report):
     if soft:
         rep.add("N09", "WARN", "引用の中の表記（要確認）", f"{len(soft)} 箇所。台詞と分類できない引用・台詞の中の引用にある表記",
                 soft, "題名・固有名・入力文字列そのものなら、そのまま残す。台詞なら N01〜N04 の規則で直す")
-    if n07:
-        rep.add("N07", "WARN", "Markdown 装飾", f"{len(n07)} 箇所。本文に太字・箇条書き・引用記号・コード記法がある", n07,
-                "小説の本文では使わない。強調は傍点 《《語》》 か、語順で")
     if doc.unbalanced:
         rep.add("N08", "WARN", "括弧の対応", f"{len(doc.unbalanced)} 行。「」『』が行の中で閉じていない（1 段落 1 行が前提。台詞の統計は不確か）",
                 doc.unbalanced, "台詞の途中で改行していないか、閉じ忘れが無いか")
     # N10 字下げの無い原稿で、表記の FAIL が「文書を導入する行」の直後にあるとき、範囲の明示を案内する。FAIL はそのまま残す
-    flagged = {ln for ln, _ in n01 + n02 + n03 + n04}
+    flagged = {loc["line"] for h in rep.hits if h["rule"] in ("N01", "N02", "N03", "N04") and h["severity"] == "FAIL"
+               for loc in h["locations"]}      # 実際に出た FAIL だけ（overrides や --skip で止めたルールは根拠にしない）
     guessed = [b for b in guessed_document_blocks(doc) if flagged & set(b)]
     if guessed:
         by_line = {p["line"]: p for p in doc.paras}
@@ -739,7 +770,11 @@ def check_notation(doc: Doc, rep: Report):
 def collect_stats(doc: Doc, cfg: Config) -> dict:
     sents = []   # (line, text, cls, is_tag)
     tokens = []  # 文末クラス列。純台詞段落は "D" で run を切る
+    last_line = 0
     for p in doc.paras:
+        if doc.document_between(last_line, p["line"]):      # ＞ だけの行、記号だけの文面（＞＊）も境界
+            tokens.append(("D", p["line"], ""))
+        last_line = p["line"]
         if p["kind"] in ("dialogue", "document"):      # 作中文書でも同一文末の連続を切る
             tokens.append(("D", p["line"], ""))
             continue
@@ -999,19 +1034,22 @@ def repeated_in_window(lines, rx, limit: int, window):
 def check_density(doc: Doc, rep: Report):
     cfg, g = rep.cfg, rep.cfg.guards
     narr, everything = doc.narr_lines(), doc.all_lines()
-    if doc.total_chars < g["density_min_chars"] or cfg.length == "flash":
-        # 短い断片と掌編では密度が暴れるので警報にしない。どの群の表現があるかだけ知らせる
-        found_any = []
-        for rid, rule in cfg.thresholds["rules"].items():
-            if rule.get("kind") == "density" and "lexicon" in rule and not cfg.levels(rid).get("off"):
-                lines = narr if rule.get("unit", "narr") == "narr" else everything
-                hits = find_all(lines, cfg.rx(rule["lexicon"]))
+    # 短い断片と掌編では密度が暴れるので警報にしない。どの群の表現があるかだけ知らせる（K00）。
+    # 全文が長くても、そのルールの分母（地の文）が短ければ同じ扱いにする。分母の違う字数で切り替えると、診断が黙って消える
+    short_all = doc.total_chars < g["density_min_chars"] or cfg.length == "flash"
+    found_any = []
+    for rid, rule in cfg.thresholds["rules"].items():
+        if rule.get("kind") == "density" and "lexicon" in rule and not cfg.levels(rid).get("off"):
+            unit = rule.get("unit", "narr")
+            if short_all or (doc.narr_chars if unit == "narr" else doc.total_chars) < g["density_min_chars"]:
+                hits = find_all(narr if unit == "narr" else everything, cfg.rx(rule["lexicon"]))
                 if hits:
                     found_any.append((hits[0][0], f"{rid} {rule['name']} ×{len(hits)}: " + "、".join(sorted({w for _, w, _ in hits})[:5])))
-        if found_any:
-            rep.add("K00", "INFO", "語彙の癖（掌編・短い断片では密度を警報にしない）",
-                    f"{doc.total_chars} 字。該当した群と回数だけ示す", found_any,
-                    "一つずつ fix / keep を選ぶ。同義語に置き換えず、文の機能を果たし直すか削る")
+    if found_any:
+        rep.add("K00", "INFO", "語彙の癖（掌編・短い断片では密度を警報にしない）",
+                f"全文 {doc.total_chars} 字・地の文 {doc.narr_chars} 字。該当した群と回数だけ示す", found_any,
+                "一つずつ fix / keep を選ぶ。同義語に置き換えず、文の機能を果たし直すか削る")
+    if short_all:
         return
     summary = {}
     for rid, rule in cfg.thresholds["rules"].items():
@@ -1023,7 +1061,7 @@ def check_density(doc: Doc, rep: Report):
         unit = rule.get("unit", "narr")
         lines, base = (narr, doc.narr_chars) if unit == "narr" else (everything, doc.total_chars)
         if base < g["density_min_chars"]:
-            continue      # 全文が長くても、このルールの分母（地の文）が短ければ密度にしない
+            continue      # 全文が長くても、このルールの分母（地の文）が短ければ密度にしない（上の K00 で回数だけ知らせてある）
         found = find_all(lines, cfg.rx(rule["lexicon"]))
         dens = round(len(found) * 1000 / base, 2)
         summary[rid] = (len(found), dens)
@@ -1464,6 +1502,7 @@ def lint_text(text: str, cfg: Config, only: str = "", skip: str = "", min_chars:
     rep = Report(cfg, only, skip)
     stats = collect_stats(doc, cfg)
     check_meta(doc, rep, min_chars if min_chars is not None else cfg.guards["body_min_chars"])
+    check_markdown(doc, rep)
     if doc.total_chars:
         check_notation(doc, rep)
         check_counting(doc, rep)

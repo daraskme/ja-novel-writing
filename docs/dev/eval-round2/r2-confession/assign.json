@@ -1,0 +1,14 @@
+{
+  "graduation-confession/t1": {
+    "order1": [
+      "base",
+      "with"
+    ]
+  },
+  "graduation-confession/t2": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  }
+}

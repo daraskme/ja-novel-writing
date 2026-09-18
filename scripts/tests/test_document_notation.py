@@ -303,5 +303,118 @@ class CountDocument(unittest.TestCase):
         self.assertEqual(count_chars.flow_rows(text, 20, assume_indent=True), 4)
 
 
+class CodexReview11(unittest.TestCase):
+    """Codex レビュー 11 の再現入力。"""
+
+    def test_intro_is_not_carried_past_an_explicit_document(self):
+        """「メールを開いた。」の効力は、直後の明示された文面で使い切る。その後ろの字下げの無い行は、文書と推定しない。"""
+        for marked in (GT + "了解。", GT):
+            text = "\n".join([FW + "メールを開いた。", marked, "電話をかけた…", FW + "雨が降っていた。", FW + "彼は歩いた。"]) + "\n"
+            _, hits = lint(text)
+            self.assertEqual(lines_of(hits, "N01", "FAIL"), [3], repr(marked))
+            self.assertNotIn(3, lines_of(hits, "N09"), repr(marked))
+
+    def test_symbol_only_document_lines_are_boundaries(self):
+        head, tail = ["雨が降っていた。", "彼は傘を開いた。"], ["道は濡れていた。", "駅は遠かった。"]
+        for marked in (GT + "＊", GT, GT + "……"):
+            stats, _ = lint("\n".join(head + [marked] + tail) + "\n", length="long")
+            self.assertEqual(stats["same_ending_max_run"], 2, repr(marked))
+
+    def test_markdown_in_a_symbol_only_document_line(self):
+        _, hits = lint("メールを開いた。\n" + GT + "**！**\n彼は画面を閉じた。\n")
+        self.assertEqual(lines_of(hits, "N07"), [2])
+        _, hits = lint("彼は見た。\n* * *\n彼は歩いた。\n")
+        self.assertEqual(lines_of(hits, "N07"), [2])
+
+    def test_silent_lines_are_counted_like_count_chars(self):
+        for text in [GT + "……\n", "……\n彼は見た。\n", GT + "！？\n" + GT + "＊\n彼は見た。\n", "（……）\n彼は見た。\n", "【……】\n――――\n彼は見た。\n"]:
+            stats, hits = lint(text)
+            self.assertEqual(stats["chars"], count_chars.count_body(text), repr(text))
+        self.assertEqual(found(lint(GT + "……\n")[1], "M01", "FAIL"), [])
+
+    def test_guide_ignores_disabled_rules(self):
+        cfg = nl.Config("entertainment", "short", None)
+        cfg.finalize()
+        cfg.overrides = {"N01": {"off": True, "reason": "test"}}
+        _, hits = nl.lint_text("メッセージが届いた。\n待ってる…\n", cfg, min_chars=0)
+        self.assertEqual(found(hits, "N01") + found(hits, "N10"), [])
+        _, hits = nl.lint_text("メッセージが届いた。\n待ってる…\n", nl_config(), skip="")
+        self.assertEqual(len(found(hits, "N10")), 1)
+
+    def test_conjunction_between_cue_and_verb_is_not_an_intro(self):
+        for intro in ["メールを読んだが窓を開いた。", "手紙を持ったまま戸を開けた。", "画面を見ながら箱を開いた。"]:
+            _, hits = lint(intro + "\n外は雨…\n")
+            self.assertEqual(found(hits, "N10"), [], intro)
+
+    def test_verify_keeps_document_text_literal(self):
+        """文面の「## 件名」「＊ ＊」を見出し・場面転換として均さない。欠落も印の残留も不一致になる。"""
+        plain = export.Options(target="plain", indent="keep")
+        self.assertFalse(export.verify([GT + "## 件名"], "# 件名", plain)["ok"])
+        self.assertTrue(export.verify([GT + "## 件名"], "## 件名", plain)["ok"])
+        self.assertFalse(export.verify([GT + "＊ ＊"], "＊", plain)["ok"])
+        custom = export.Options(target="plain", scene_break=GT + "＊")
+        self.assertFalse(export.verify([GT + "＊"], GT + "＊", custom)["ok"])
+        out, _ = export.convert_text(GT + "＊\n＊\n彼は見た。\n", custom)
+        self.assertEqual(out.split("\n")[0], "＊")
+        self.assertTrue(export.verify([GT + "＊\n＊\n彼は見た。\n"], out, custom)["ok"])
+        # 地の文の見出し・場面転換は、これまでどおり表記の違いを無視する
+        self.assertTrue(export.verify(["## 題\n＊　＊　＊\n本文。"], "# 題\n\n◇\n\n" + FW + "本文。", export.Options(target="plain", heading="keep", scene_break="◇"))["ok"])
+
+    def test_dropped_heading_does_not_merge_documents(self):
+        text = GT + "一通目。\n# 次の手紙\n" + GT + "二通目。\n"
+        for policy in ("keep", "none", "dialogue", "para"):
+            out, _, opts = convert(text, "narou", blank=policy, heading="drop")
+            self.assertEqual(out.split("\n"), ["一通目。", "", "二通目。"], policy)
+            self.assertTrue(export.verify([text], out, opts)["ok"], policy)
+        # 文書のあいだでなければ、keep は見出しの跡に何も足さない
+        out, _, _ = convert("彼は見た。\n# 題\n彼は歩いた。\n", "narou", blank="keep", heading="drop")
+        self.assertEqual(out.split("\n"), [FW + "彼は見た。", FW + "彼は歩いた。"])
+
+    def test_library_calls_normalize_bom_and_crlf(self):
+        text = chr(0xFEFF) + GT + "本文\r\n彼は見た。\r\n"
+        opts = export.Options(target="plain", indent="keep")
+        out, _ = export.convert_text(text, opts)
+        self.assertEqual(out, "本文\n彼は見た。")
+        self.assertTrue(export.verify([text], out, opts)["ok"])
+        self.assertFalse(export.verify([text], GT + "本文\n彼は見た。", opts)["ok"])
+        clean = GT + "本文\n彼は見た。\n"
+        for fn in (count_chars.count_raw, count_chars.count_narou, count_chars.count_body):
+            self.assertEqual(fn(text), fn(clean), fn.__name__)
+        self.assertEqual(count_chars.flow_rows(text, 20), count_chars.flow_rows(clean, 20))
+        self.assertEqual(lint(text)[0]["chars"], count_chars.count_body(text))
+
+
+class CodexReview12(unittest.TestCase):
+    """Codex レビュー 12 の再現入力。"""
+
+    def test_silent_lines_do_not_dilute_punctuation_density(self):
+        """字数に入れた沈黙の行は、約物の頻度の検索対象にも入れる。分母だけ増えて警報が消えてはいけない。"""
+        base = "彼は歩いた。\n" * 100 + "彼は黙った……。\n" * 10
+        _, hits = lint(base)
+        self.assertEqual(len(found(hits, "K02")), 1)
+        _, hits = lint(base + "……\n" * 1000)
+        k02 = found(hits, "K02")
+        self.assertEqual(len(k02), 1)
+        self.assertEqual(len(k02[0]["locations"]), 1010)
+
+    def test_short_narration_still_gets_the_vocabulary_note(self):
+        """全文が長くても、地の文が短ければ K00（回数だけの案内）を出す。診断が黙って消えない。"""
+        _, hits = lint("寂しかった。\n")
+        self.assertEqual(len(found(hits, "K00")), 1)
+        _, hits = lint("寂しかった。\n" + "……\n" * 300)
+        self.assertEqual(len(found(hits, "K00")), 1)
+
+    def test_markdown_is_checked_even_when_the_body_is_empty(self):
+        _, hits = lint(GT + "**！**\n")
+        self.assertEqual(lines_of(hits, "N07"), [1])
+        self.assertEqual(len(found(hits, "M01", "FAIL")), 1)
+
+
+def nl_config():
+    cfg = nl.Config("entertainment", "short", None)
+    cfg.finalize()
+    return cfg
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -26,15 +26,17 @@ from pathlib import Path
 req = sys.stdin.buffer.read().decode("utf-8")
 mode = sys.argv[2]
 a = req.split("## 応答 A")[1].split("## 応答 B")[0]
-if mode == "always-a":
+if mode in ("always-a", "exit3"):
     pref = "A"
 elif mode == "garbage":
     pref = None
 else:
     pref = "A" if "スキルあり" in a else "B"
 seen = sorted(os.listdir("."))
-text = "1. 条件\\n2. 理由\\n作業ディレクトリ: " + repr(seen) + "\\n" + ("選好: " + pref if pref else "決められない") + "\\n"
+text = "1. 条件\\n2. 理由\\n作業ディレクトリ: " + repr(seen) + "\\n" + ("選好: " + pref if pref else "今回は結論を出せません。\\n応答からの引用：\\n> 選好: A") + "\\n"
 Path(sys.argv[1]).write_text(text, encoding="utf-8")
+if mode == "exit3":
+    sys.exit(3)      # 選好を書いてから失敗で終わる
 """
 
 
@@ -97,17 +99,128 @@ class BlindEvalTest(unittest.TestCase):
         rbe.main(["report", "--run", str(self.run_dir)])
         results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
         self.assertEqual({r["result"] for r in results["rows"]}, {"順序不安定"})
-        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " garbage", "--force", "--retries", "0"]), 0)
+        # 引用された「> 選好: A」しか無い判定は、読めない判定として失敗に数える（終了コードは 0 でも）
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " garbage", "--force", "--retries", "0"]), 1)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"失敗"})
+
+    def test_failed_judge_with_a_written_verdict_is_not_adopted(self):
+        """判定役が選好を書いてから失敗で終わっても、その選好は採用しない。次の judge でも済んだものとして飛ばさない。"""
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " exit3", "--retries", "0"]), 1)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"失敗"})
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"with"})
+
+    def test_old_verdicts_are_not_attached_to_new_texts(self):
+        """応答を作り直したら、前の応答への判定は使わない（judge を走らせ直す前の report では失敗扱い。judge は読み直す）。"""
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        # 生成役を差し替えて作り直す（系統の名前は同じ）
+        other = self.tmp / "gen_stub2.py"
+        other.write_text(GEN_STUB.replace("スキルありの応答", "別の版の応答").replace("スキルなしの応答", "スキルありの応答"), encoding="utf-8")
+        generator2 = self.generator.replace("gen_stub.py", "gen_stub2.py")
+        self.assertEqual(rbe.main(["generate", "--run", str(self.run_dir), "--arm", "with=skill", "--arm", "base=none",
+                                   "--only", "graduation-confession,flash-talkative-comedy", "--trials", "2", "--generator", generator2]), 0)
+        run = json.loads((self.run_dir / "run.json").read_text(encoding="utf-8"))
+        self.assertEqual({g["generator"] for g in run["generations"]}, {generator2})      # コマンドが変わった応答は使い回さない
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"失敗"})               # 古い判定は新しい本文に結び付かない
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"base"})               # 作り直した本文では「スキルあり」と書くのは base 側
+
+    def test_hand_edited_response_is_regenerated(self):
+        self.assertEqual(self.generate(), 0)
+        target = self.run_dir / "gen/graduation-confession/t1/with.md"
+        target.write_text("手で直した応答", encoding="utf-8")
+        self.assertEqual(self.generate(), 0)
+        self.assertIn("スキルありの応答", target.read_text(encoding="utf-8"))
+
+    def test_run_dir_inside_another_arm_is_refused(self):
+        old = self.tmp / "old-skill"
+        (old / "references").mkdir(parents=True)
+        (old / "SKILL.md").write_text("# old", encoding="utf-8")
+        code = rbe.main(["generate", "--run", str(old / "references" / "blind-run"), "--arm", "new=skill", "--arm", f"old={old}",
+                         "--only", "graduation-confession", "--generator", self.generator])
+        self.assertEqual(code, 2)
+
+    def test_audit_flags_forbidden_names_in_logs(self):
+        self.assertEqual(self.generate(), 0)
+        rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"])
+        log = self.run_dir / "gen/graduation-confession/t1/base.log"
+        log.write_text(log.read_text(encoding="utf-8") + "\nexec: type ..\\..\\x\\ja-novel-writing\\SKILL.md\n", encoding="utf-8")
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual([a["log"] for a in results["audit"]["found"]], ["gen/graduation-confession/t1/base.log"])
+        self.assertIn("人が読んで確かめる", (self.run_dir / "results.md").read_text(encoding="utf-8"))
+
+    def test_audit_reports_missing_logs_as_unverifiable(self):
+        """ログが無いのに「該当なし」とは言わない（Codex レビュー 12）。"""
+        self.assertEqual(self.generate(), 0)
+        rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"])
+        rbe.main(["report", "--run", str(self.run_dir)])
+        report = (self.run_dir / "results.md").read_text(encoding="utf-8")
+        self.assertIn("12 本を点検して該当なし", report)      # スキルなしの生成 4 本 + 判定 8 本
+        for log in self.run_dir.rglob("*.log"):
+            log.unlink()
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(results["audit"]["missing"]), 12)
+        report = (self.run_dir / "results.md").read_text(encoding="utf-8")
+        self.assertIn("ログ欠落 12 本は確認不能", report)
+        self.assertNotIn("該当なし", report)
+
+    def test_edited_response_is_not_judged_or_reported(self):
+        """generate を挟まずに応答の本文を書き換えても、元の生成条件の成果としては扱わない（Codex レビュー 12）。"""
+        self.assertEqual(self.generate(), 0)
+        target = self.run_dir / "gen/graduation-confession/t1/with.md"
+        target.write_text("あとから書き換えた応答。スキルありの応答。", encoding="utf-8")
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 1)
+        self.assertFalse((self.run_dir / "judge/graduation-confession/t1/order1.md").exists())      # その対は読ませない
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        by_key = {(r["prompt"], r["trial"]): r["result"] for r in results["rows"]}
+        self.assertIn("本文が、記録したときと違う", by_key[("graduation-confession", 1)])
+        self.assertEqual(by_key[("graduation-confession", 2)], "with")
+
+    def test_edited_verdict_and_other_judge_command_are_not_reported(self):
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        verdict = self.run_dir / "judge/graduation-confession/t1/order1.md"
+        text = verdict.read_text(encoding="utf-8")
+        flipped = text.replace("選好: A", "選好: X").replace("選好: B", "選好: A").replace("選好: X", "選好: B")
+        verdict.write_text(flipped, encoding="utf-8")      # meta は元のまま
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        by_key = {(r["prompt"], r["trial"]): r["result"] for r in results["rows"]}
+        self.assertEqual(by_key[("graduation-confession", 1)], "失敗")
+        self.assertEqual(by_key[("graduation-confession", 2)], "with")
+        # 再開すると、その判定だけ読み直す
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        self.assertEqual(verdict.read_text(encoding="utf-8"), text)
+        # run.json の判定コマンドと meta の判定コマンドが違えば、その判定は集計しない
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["judge"]["command"] = "another-judge {out}"
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
         rbe.main(["report", "--run", str(self.run_dir)])
         results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
         self.assertEqual({r["result"] for r in results["rows"]}, {"失敗"})
 
     def test_resume_skips_finished_generations(self):
         self.assertEqual(self.generate(), 0)
-        marker = self.run_dir / "gen/graduation-confession/t1/with.md"
-        marker.write_text("手で直した応答", encoding="utf-8")
+        before = json.loads((self.run_dir / "run.json").read_text(encoding="utf-8"))["generations"]
         self.assertEqual(self.generate(), 0)
-        self.assertEqual(marker.read_text(encoding="utf-8"), "手で直した応答")
+        after = json.loads((self.run_dir / "run.json").read_text(encoding="utf-8"))["generations"]
+        self.assertEqual(before, after)      # 同じ条件なら作り直さない（試行の記録もそのまま）
 
     def test_failed_generator_is_recorded(self):
         bad = f'"{Path(sys.executable).as_posix()}" -c "import sys; sys.exit(3)" {{out}}'
@@ -144,13 +257,24 @@ class BlindEvalTest(unittest.TestCase):
         self.assertEqual(rbe.settle("with", "差なし"), "順序不安定")
         self.assertEqual(rbe.settle("with", "判定不能"), "判定不能")
         self.assertEqual(rbe.settle(None, "with"), "失敗")
-        self.assertEqual(rbe.parse_preference("理由…\n選好: A\n追記\n選好：Ｂ"), "B")
+        self.assertEqual(rbe.parse_preference("理由…\n選好: A\n追記\n選好：Ｂ\n\n"), "B")
         self.assertIsNone(rbe.parse_preference("どちらとも言えない"))
         self.assertEqual(rbe.parse_preference("4. **選好: 差なし**"), "差なし")
         self.assertEqual(rbe.parse_preference("- `選好: A`"), "A")
         # 指示文を写しただけの行は選好ではない
         self.assertIsNone(rbe.parse_preference("最後の行に `選好: A` / `選好: B` / `選好: 差なし` / `選好: 判定不能` のどれかを書く"))
-        self.assertEqual(rbe.parse_preference("選好: B\n形式は `選好: A` / `選好: B` のどれか、とのことでした"), "B")
+        # 最終行が選好でなければ、途中の一致へは戻らない
+        self.assertIsNone(rbe.parse_preference("選好: B\n形式は `選好: A` / `選好: B` のどれか、とのことでした"))
+        self.assertIsNone(rbe.parse_preference("今回は結論を出せません。\n応答からの引用：\n> 選好: A"))
+        self.assertIsNone(rbe.parse_preference("結論は出せません。\n```\n選好: A\n```"))
+        self.assertEqual(rbe.parse_preference("```\n選好: A\n```\n選好: 判定不能"), "判定不能")
+        # 閉じていないフェンス、長いフェンス、字下げされたコード行（Codex レビュー 12）
+        self.assertIsNone(rbe.parse_preference("引用:\n```\n選好: A"))
+        self.assertIsNone(rbe.parse_preference("引用:\n~~~\n選好: A"))
+        self.assertIsNone(rbe.parse_preference("引用:\n````\n```\n選好: A\n```"))
+        self.assertIsNone(rbe.parse_preference("引用:\n    選好: A"))
+        self.assertIsNone(rbe.parse_preference("引用:\n\t選好: A"))
+        self.assertEqual(rbe.parse_preference("引用:\n~~~\n選好: A\n~~~\n   - 選好: B"), "B")
 
 
 if __name__ == "__main__":

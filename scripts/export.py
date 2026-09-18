@@ -336,12 +336,24 @@ def needs_gap(prev_kind: str, kind: str, policy: str) -> bool:
 
 
 def apply_blank_policy(items: list, policy: str) -> list:
-    """items は (kind, text) の列。keep 以外は原稿の空行を捨てて方針どおりに入れ直す。"""
+    """items は (kind, text) の列。keep 以外は原稿の空行を捨てて方針どおりに入れ直す。
+
+    kind が "dropped" の項目は、本文から外した見出しの跡（出力には出さない）。2 つの作中文書のあいだにあったなら、
+    見出しが消えても別の文書のままにする。
+    """
     if policy == "keep":
-        return items
+        out = []
+        for i, item in enumerate(items):
+            if item[0] != "dropped":
+                out.append(item)
+                continue
+            following = next((kind for kind, _ in items[i + 1:] if kind != "dropped"), None)
+            if out and out[-1][0] in DOC_KINDS and following in DOC_KINDS:
+                out.append(("blank", ""))      # 原稿の空行には触らない方針でも、見出しを外して 2 つの文書がつながるのは防ぐ
+        return out
     out, prev_kind, blank_seen = [], None, False
     for item in items:
-        if item[0] == "blank":
+        if item[0] in ("blank", "dropped"):
             blank_seen = True
             continue
         # 空行を挟んで並んだ 2 つの作中文書は別の文書。1 つにつなげない。
@@ -355,6 +367,7 @@ def apply_blank_policy(items: list, policy: str) -> list:
 
 def convert_text(text: str, opts: Options) -> tuple:
     """原稿 1 本を変換して (出力テキスト, Report) を返す。出力は末尾改行なし。"""
+    text = normalize_text(text)
     report = Report()
     items = []
     indented = plain = 0
@@ -379,7 +392,8 @@ def convert_text(text: str, opts: Options) -> tuple:
             title = HEADING_RE.match(line).group(1)
             report.stats["headings"].append(title)
             if opts.heading == "drop":
-                continue  # 題はサイトの題欄に入れるもの。本文には出さない。
+                items.append(("dropped", ""))  # 題はサイトの題欄に入れるもの。本文には出さない。跡だけ残す（文書の境界のため）
+                continue
             if opts.heading == "text":
                 line = render_inline(title, line_no, opts, report)
             elif opts.heading == "chapter":
@@ -433,7 +447,7 @@ def project_source(text: str, opts: Options) -> list:
     変換の誤りが検証をすり抜けるため。
     """
     out = []
-    for line_no, line in enumerate(text.split(LF), 1):
+    for line_no, line in enumerate(normalize_text(text).split(LF), 1):
         # 作中文書の印は原稿側でだけ外す。出力側では外さないので、印が出力に残れば不一致になる。
         in_document = line.startswith(DOC_PREFIX)
         if in_document or line.startswith(DOC_ESCAPES):
@@ -450,7 +464,7 @@ def project_source(text: str, opts: Options) -> list:
             line = _sub_outside_emphasis(RUBY_RE, r"\1（\2）", line)
         elif opts.target == "plain" and opts.plain_ruby == "drop":
             line = _sub_outside_emphasis(RUBY_RE, r"\1", line)
-        out.append((line_no, line))
+        out.append((line_no, line, in_document))
     return out
 
 
@@ -468,7 +482,7 @@ def _sub_outside_emphasis(pattern, repl: str, line: str) -> str:
 def reverse_output(text: str, opts: Options) -> list:
     """出力側の記法を内部記法へ戻す。"""
     out = []
-    for line_no, line in enumerate(text.split(LF), 1):
+    for line_no, line in enumerate(normalize_text(text).split(LF), 1):
         if opts.target == "alphapolis":
             line = ALPHA_RUBY_BACK_RE.sub(r"｜\1《\2》", line)
         elif opts.target == "pixiv":
@@ -479,27 +493,31 @@ def reverse_output(text: str, opts: Options) -> list:
                 line = "# " + m.group(1)
             line = PIXIV_EMPH_BACK_RE.sub(r"《《\1》》", line)
             line = PIXIV_RUBY_BACK_RE.sub(r"｜\1《\2》", line)
-        out.append((line_no, line))
+        out.append((line_no, line, False))
     return out
 
 
 def canonical_lines(numbered: list, opts: Options) -> list:
-    """(行番号, 行) の列を、字下げ・空行・場面転換の表記・見出しの段・｜の全半角を無視した形にする。"""
+    """(行番号, 行, 作中文書か) の列を、(行番号, 正規化した行, 字面のままの行, 作中文書か) にする。空行は落とす。
+
+    正規化は、字下げ・場面転換の表記・見出しの段・｜の全半角を無視した形。字面のままの行は、｜の全半角だけを揃えた形で、
+    作中文書の文面の突き合わせに使う（文面の「## 件名」や「＊ ＊」を見出し・場面転換として均すと、字の欠落を見逃す）。
+    """
     custom_break = "".join(opts.scene_break.split())
     out = []
-    for line_no, line in numbered:
-        s = line.lstrip(FW_SPACE)
-        if not s.strip():
+    for line_no, line, is_doc in numbered:
+        if not line.strip():
             continue
+        literal = RUBY_RE.sub(r"｜\1《\2》", line)
+        s = line.lstrip(FW_SPACE)
         compact = "".join(s.split())
         if SCENE_BREAK_RE.match(s.strip()) or (custom_break and compact == custom_break):
-            out.append((line_no, "＊"))
+            out.append((line_no, "＊", literal, is_doc))
             continue
         m = HEADING_RE.match(s)
         if m:
             s = "# " + m.group(1)
-        s = RUBY_RE.sub(r"｜\1《\2》", s)
-        out.append((line_no, s))
+        out.append((line_no, RUBY_RE.sub(r"｜\1《\2》", s), literal, is_doc))
     return out
 
 
@@ -516,11 +534,15 @@ def verify(source_texts: list, output_text: str, opts: Options) -> dict:
     """記法を正規化すれば出力が原稿と一致することを確かめる。"""
     expected = []
     for index, text in enumerate(source_texts):
-        for line_no, line in canonical_lines(project_source(text, opts), opts):
-            expected.append((index, line_no, line))
-    actual = canonical_lines(reverse_output(output_text, opts), opts)
+        for line_no, line, literal, is_doc in canonical_lines(project_source(text, opts), opts):
+            expected.append((index, line_no, literal if is_doc else line, is_doc))
+    reversed_output = canonical_lines(reverse_output(output_text, opts), opts)
+    # 出力のどの行が文面かは出力からは分からないので、原稿の同じ位置の行が文面なら字面のまま、そうでなければ正規化した形で比べる。
+    # 行数がずれた場合は位置が合わなくなるが、そのときはどのみち不一致になる。
+    actual = [(line_no, literal if i < len(expected) and expected[i][3] else line)
+              for i, (line_no, line, literal, _) in enumerate(reversed_output)]
 
-    a = [line for _, _, line in expected]
+    a = [line for _, _, line, _ in expected]
     b = [line for _, line in actual]
     result = {"ok": a == b, "lines": len(a), "diffs": []}
     if result["ok"]:
@@ -549,6 +571,11 @@ def verify(source_texts: list, output_text: str, opts: Options) -> dict:
 # ---------------------------------------------------------------------------
 def normalize_newlines(text: str) -> str:
     return text.replace(CR + LF, LF).replace(CR, LF)
+
+
+def normalize_text(text: str) -> str:
+    """先頭の BOM を外し、改行を LF に揃える。ファイルを読む経路と、関数を直接呼ぶ経路で解釈が分かれないようにする。"""
+    return normalize_newlines(text.lstrip(BOM))
 
 
 def read_text(path: Path) -> str:

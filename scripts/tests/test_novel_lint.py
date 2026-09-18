@@ -385,7 +385,11 @@ class CodexReviewRound3(unittest.TestCase):
         a = lint("　手紙には一行だけあった。")[0]["chars"]
         b = lint("　手紙には一行だけあった。\nMeet me at noon.")[0]["chars"]
         self.assertGreater(b, a)
-        self.assertEqual(lint("……\n＊\n　彼は帰った。")[0]["chars"], lint("　彼は帰った。")[0]["chars"])
+        # 飾りの行（＊、――――）は字数に入れない。沈黙だけの行（……）は本文なので入れる（count_chars.py の body と同じ数え方。Codex レビュー 11）
+        base = lint("　彼は帰った。")[0]["chars"]
+        self.assertEqual(lint("＊\n――――\n　彼は帰った。")[0]["chars"], base)
+        self.assertEqual(lint("……\n＊\n　彼は帰った。")[0]["chars"], base + 2)
+        self.assertNotIn("M01", rules(lint("……")[1], "FAIL"))
 
     def test_double_bracket_cases(self):
         self.assertEqual(lint("『旅』という雑誌を買った。\n　雨だった。")[0]["utterances"], 0)

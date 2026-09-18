@@ -17,8 +17,12 @@
 
 比較の条件を揃えるための決まり:
   - 依頼は番号でなく、名前と本文のハッシュで識別する（blind_prompts.json）。
-  - 系統ごとの作業ディレクトリはリポジトリの外に作る。スキルの系統には SKILL.md・references・scripts・assets だけを写し、
+  - 系統ごとの作業ディレクトリはリポジトリの外に、系統ごとに別の場所へ作る。スキルの系統には SKILL.md・references・scripts・assets だけを写し、
     evals/ と docs/（過去の評価、敗因、修正の意図）は渡さない。スキルなしの系統と判定役は空のディレクトリで動かす。
+    ただし、ファイルの読み取りを技術的に遮断してはいない（他の系統、元のリポジトリ、結果・割り当て・ログを読める可能性は残る）。
+    report は、スキルなしの系統と判定役のログに、読んではいけない場所の名前が出ていないかを点検して記録する。
+  - 応答と判定は、作った条件（系統の写しのハッシュ、コマンド、依頼文、両応答、割り当て）のハッシュに結び付けて保存する。
+    条件や本文が変わったものは再利用しない。終了コードが 0 でない判定、最終行から選好を読めない判定は、失敗として記録する。
   - 判定役には、依頼文と 2 つの応答と問いだけを渡す。系統の名前、モデル名、版、過去の勝敗、lint の結果、evals.json の expected_output は渡さない。
   - 点数は作らない。合計の勝率も出さない。依頼ごとに、選ばれた系統・差なし・順序不安定・判定不能・失敗を並べて書く。
 
@@ -90,8 +94,11 @@ JUDGE_HEAD = """あなたは日本語小説の読者であり、編集者です�
 3. 誤り（字数・音数・時刻・日付などの数え間違い、事実の誤り、本文以外の混入）。無ければ「なし」
 4. 最後の行に、次のどれか 1 行だけ: `選好: A` / `選好: B` / `選好: 差なし` / `選好: 判定不能`
 """
-# 選好だけが書かれた行を読む。指示文の「`選好: A` / `選好: B` / …」を写した行は、選好として読まない。
-PREFERENCE_RE = re.compile(r"^[\s>*\-・]*(?:\d+[.．)）]\s*)?[`*]*選好\s*[:：]\s*[`*]*\s*(A|B|Ａ|Ｂ|差なし|判定不能)[`*。\s]*$", re.M)
+# 最終行に、選好だけが書かれているときだけ読む。指示文を写した行、引用（>）、コードブロックの中の「選好: A」は選好として読まない。
+PREFERENCE_RE = re.compile(r"^[\s*\-・]*(?:\d+[.．)）]\s*)?[`*]*選好\s*[:：]\s*[`*]*\s*(A|B|Ａ|Ｂ|差なし|判定不能)[`*。\s]*$")
+FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+# スキルなしの系統と判定役のログに出てはいけない名前（読み取りの隔離は保証していないので、事後に点検する）
+LEAK_RE = re.compile(r"SKILL\.md|ja-novel-writing|assign\.json|run\.json|results\.(?:json|md)|evals\.json|expected_output")
 
 CAVEAT = (
     "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、"
@@ -162,13 +169,13 @@ def tree_hash(root: Path) -> str:
     return h.hexdigest()[:12]
 
 
-def stage_arm(arm: dict, stage_root: Path) -> dict:
-    """系統の作業ディレクトリをリポジトリの外に作る。スキルの系統には、評価資料と開発記録を除いた写しを置く。"""
-    parent = stage_root / f"w{random.randrange(16 ** 6):06x}"      # ディレクトリ名から系統を推測できないようにする
+def stage_arm(arm: dict) -> dict:
+    """系統の作業ディレクトリをリポジトリの外に、系統ごとに別の一時ディレクトリとして作る。スキルの系統には、評価資料と開発記録を除いた写しを置く。"""
+    parent = Path(tempfile.mkdtemp(prefix="w"))      # ディレクトリ名から系統を推測できないようにする
     if arm["source"] == "none":
         work = parent / "work"
         work.mkdir(parents=True)
-        return dict(arm, cwd=str(work), tree=None)
+        return dict(arm, cwd=str(work), tree=None, stage=str(parent))
     src = SKILL_DIR if arm["source"] == "skill" else Path(arm["source"]).resolve()
     work = parent / "ja-novel-writing"
     work.mkdir(parents=True)
@@ -177,7 +184,7 @@ def stage_arm(arm: dict, stage_root: Path) -> dict:
             shutil.copytree(src / part, work / part, ignore=shutil.ignore_patterns(*SKIP_NAMES))
         elif (src / part).is_file():
             shutil.copy2(src / part, work / part)
-    return dict(arm, cwd=str(work), tree=tree_hash(work))
+    return dict(arm, cwd=str(work), tree=tree_hash(work), stage=str(parent))
 
 
 # ---------------------------------------------------------------------------
@@ -205,8 +212,8 @@ def command_version(template: str) -> str:
         return "不明"
 
 
-def run_once(template: str, cwd: Path, prompt: str, out: Path, timeout: int, retries: int) -> dict:
-    """コマンドを実行して最終応答を out に保存する。失敗と再試行も記録する。"""
+def run_once(template: str, cwd: Path, prompt: str, out: Path, timeout: int, retries: int, accept=None) -> dict:
+    """コマンドを実行して最終応答を out に保存する。失敗と再試行も記録する。accept は応答の本文を見て成否を決める関数（判定の読み取りなど）。"""
     out.parent.mkdir(parents=True, exist_ok=True)
     log = out.with_suffix(".log")
     attempts = []
@@ -225,6 +232,8 @@ def run_once(template: str, cwd: Path, prompt: str, out: Path, timeout: int, ret
         with open(log, "ab") as f:
             f.write(f"--- attempt {attempt} exit={code}\n".encode("utf-8") + stdout + b"\n" + stderr + b"\n")
         ok = code == 0 and out.is_file() and out.read_text(encoding="utf-8", errors="replace").strip() != ""
+        if ok and accept is not None:
+            ok = bool(accept(out.read_text(encoding="utf-8", errors="replace")))
         attempts.append({"attempt": attempt, "exit": code, "seconds": round(time.time() - started, 1), "ok": ok})
         if ok:
             break
@@ -257,12 +266,12 @@ def git_state() -> dict:
 
 def cmd_generate(args) -> int:
     run_dir = Path(args.run).resolve()
-    if (run_dir == SKILL_DIR or SKILL_DIR in run_dir.parents) and not args.allow_inside:
-        raise EvalError("--run がスキルのディレクトリの中にある。生成役が読めない場所（リポジトリの外）を指定する。")
     arms = parse_arms(args.arm)
+    roots = [SKILL_DIR] + [Path(a["source"]).resolve() for a in arms if a["source"] not in ("skill", "none")]
+    if any(run_dir == r or r in run_dir.parents for r in roots) and not args.allow_inside:
+        raise EvalError("--run がスキルのディレクトリ（比べる別の版を含む）の中にある。生成役に写されない場所（リポジトリの外）を指定する。")
     prompts = load_prompts(Path(args.prompts), [n for n in (args.only or "").split(",") if n])
-    stage_root = Path(tempfile.mkdtemp(prefix="blind-eval-"))
-    staged = [stage_arm(a, stage_root) for a in arms]
+    staged = [stage_arm(a) for a in arms]
     both_skill = all(a["source"] != "none" for a in arms)
     run = {
         "created": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -279,7 +288,9 @@ def cmd_generate(args) -> int:
         if [(p["name"], p["hash"]) for p in old["prompts"]] != [(p["name"], p["hash"]) for p in prompts] and not args.force:
             raise EvalError("同じ --run に、依頼の違う実行がある。別のディレクトリを指定する（上書きするなら --force）。")
         run["generations"] = [] if args.force else old.get("generations", [])
-    done_keys = {(g["prompt"], g["trial"], g["arm"]) for g in run["generations"] if g["ok"]}
+    # 済んだ応答を使い回してよいのは、同じ依頼文・同じ系統の中身・同じ生成コマンドで作られ、本文が保存時のままのときだけ
+    run["generations"] = [g for g in run["generations"] if generation_problem(run_dir, run, g) is None]
+    done_keys = {(g["prompt"], g["trial"], g["arm"]) for g in run["generations"]}
     jobs = []
     for p in prompts:
         for trial in range(1, args.trials + 1):
@@ -292,10 +303,12 @@ def cmd_generate(args) -> int:
         preamble = PREAMBLE_SKILL if arm["source"] != "none" else PREAMBLE_PLAIN
         out = run_dir / "gen" / p["name"] / f"t{trial}" / f"{arm['label']}.md"
         result = run_once(args.generator, Path(arm["cwd"]), preamble + p["text"] + "\n", out, args.timeout, args.retries)
-        return {"prompt": p["name"], "hash": p["hash"], "trial": trial, "arm": arm["label"],
+        body = out.read_text(encoding="utf-8", errors="replace") if result["ok"] else ""
+        return {"prompt": p["name"], "hash": p["hash"], "trial": trial, "arm": arm["label"], "source": arm["source"], "tree": arm["tree"],
+                "generator": args.generator, "response_sha": sha(body) if result["ok"] else None,
                 "path": out.relative_to(run_dir).as_posix(), **result}
 
-    print(f"生成 {len(jobs)} 件（並列 {args.jobs}）。作業ディレクトリ: {stage_root}")
+    print(f"生成 {len(jobs)} 件（並列 {args.jobs}）")
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
         for g in pool.map(work, jobs):
             run["generations"] = [x for x in run["generations"] if (x["prompt"], x["trial"], x["arm"]) != (g["prompt"], g["trial"], g["arm"])]
@@ -303,7 +316,8 @@ def cmd_generate(args) -> int:
             save_json(run_dir / "run.json", run)
             print(f"  {'ok ' if g['ok'] else 'NG '} {g['prompt']} t{g['trial']} {g['arm']}（{g['attempts'][-1]['seconds']} 秒、試行 {len(g['attempts'])} 回）")
     save_json(run_dir / "run.json", run)
-    shutil.rmtree(stage_root, ignore_errors=True)
+    for arm in staged:
+        shutil.rmtree(arm["stage"], ignore_errors=True)
     return 0 if all(g["ok"] for g in run["generations"]) else 1
 
 
@@ -317,10 +331,80 @@ def judge_request(prompt: dict, text_a: str, text_b: str) -> str:
 
 
 def parse_preference(text: str):
-    found = PREFERENCE_RE.findall(text)
-    if not found:
+    """最後の空でない行が選好の行なら、その選好を返す。途中の一致へは戻らない（引用や例示を選好と読まないため）。
+
+    コードブロックの中は選好として読まない。閉じていないフェンスは末尾までコード扱い。4 字以上の字下げ・タブ始まりの行もコード扱い。"""
+    last, fence = None, None      # last = (行, コードか)
+    for line in text.split("\n"):
+        m = FENCE_RE.match(line)
+        if fence:
+            if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and line.strip() == m.group(1):
+                fence = None
+            if line.strip():
+                last = (line, True)
+            continue
+        if m:
+            fence, last = m.group(1), (line, True)
+            continue
+        if line.strip():
+            last = (line, line.startswith(("    ", "\t")))
+    if last is None or last[1]:
         return None
-    return found[-1].replace("Ａ", "A").replace("Ｂ", "B")
+    m = PREFERENCE_RE.match(last[0])
+    return m.group(1).replace("Ａ", "A").replace("Ｂ", "B") if m else None
+
+
+def sha(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def generation_problem(run_dir: Path, run: dict, g: dict):
+    """生成記録が、保存された本文と実行条件に合っているかを見る。合っていれば None、合わなければ理由を返す。
+    generate（使い回しの可否）・judge（読ませてよいか）・report（集計してよいか）で同じ検証を使う。"""
+    if not g.get("ok"):
+        return "生成失敗"
+    prompt = next((p for p in run["prompts"] if p["name"] == g["prompt"]), None)
+    arm = next((a for a in run["arms"] if a["label"] == g["arm"]), None)
+    if prompt is None or arm is None:
+        return "この実行の依頼・系統ではない"
+    if g.get("hash") != prompt["hash"]:
+        return "依頼文が違う"
+    if (g.get("source"), g.get("tree")) != (arm["source"], arm["tree"]) or g.get("generator") != run["generator"]["command"]:
+        return "系統の中身か生成コマンドが違う"
+    path = run_dir / g["path"]
+    if not path.is_file() or g.get("response_sha") != sha(path.read_text(encoding="utf-8", errors="replace")):
+        return "本文が、記録したときと違う"
+    return None
+
+
+def valid_generations(run_dir: Path, run: dict) -> tuple:
+    """(検証を通った生成記録の辞書, 通らなかったものの [(依頼, 試行, 系統, 理由)])"""
+    good, bad = {}, []
+    for g in run["generations"]:
+        problem = generation_problem(run_dir, run, g)
+        if problem is None:
+            good[(g["prompt"], g["trial"], g["arm"])] = g
+        else:
+            bad.append((g["prompt"], g["trial"], g["arm"], problem))
+    return good, bad
+
+
+def build_request(run_dir: Path, ok: dict, prompt: dict, trial: int, a: str, b: str) -> str:
+    texts = [(run_dir / ok[(prompt["name"], trial, lab)]["path"]).read_text(encoding="utf-8") for lab in (a, b)]
+    return judge_request(prompt, *texts)
+
+
+def load_judgment(out: Path, request: str, judge_command: str):
+    """成功として記録され、いまの依頼文・両応答・提示順・判定コマンドと同じ条件で、本文が保存時のままの判定だけを返す。それ以外は None。"""
+    meta_path = out.with_name(out.stem + ".meta.json")
+    if not (meta_path.is_file() and out.is_file()):
+        return None
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    verdict = out.read_text(encoding="utf-8", errors="replace")
+    if (not meta.get("ok") or not meta.get("preference") or meta.get("request_sha") != sha(request) or meta.get("judge") != judge_command
+            or meta.get("verdict_sha") != sha(verdict) or parse_preference(verdict) != meta["preference"]):
+        return None
+    return meta
 
 
 def settle(first, second) -> str:
@@ -337,7 +421,9 @@ def cmd_judge(args) -> int:
     run = load_run(run_dir)
     labels = [a["label"] for a in run["arms"]]
     rng = random.Random(args.seed)      # 再現できるのは A/B の割り当て。生成された本文の再現性とは別
-    ok = {(g["prompt"], g["trial"], g["arm"]): g for g in run["generations"] if g["ok"]}
+    ok, bad = valid_generations(run_dir, run)      # 記録と本文・条件が合わない応答は読ませない
+    for name, t, lab, problem in bad:
+        print(f"  読ませない: {name} t{t} {lab}（{problem}）。generate をやり直す")
     pairs = [(p, t) for p in run["prompts"] for t in range(1, run["trials"] + 1)
              if all((p["name"], t, lab) in ok for lab in labels)]
     flips = [i % 2 == 1 for i in range(len(pairs))]      # 1 回目の提示順を、全体で半々に釣り合わせる
@@ -349,22 +435,29 @@ def cmd_judge(args) -> int:
     for (p, t), flip in zip(pairs, flips):
         key = f"{p['name']}/t{t}"
         first = assign.setdefault(key, {"order1": labels[::-1] if flip else labels[:]})["order1"]
+        if sorted(first) != sorted(labels):
+            raise EvalError(f"assign.json の {key} が、いまの系統（{', '.join(labels)}）と合わない。--force で割り当てから作り直す。")
         for order, (a, b) in (("order1", first), ("order2", first[::-1])):
             out = run_dir / "judge" / p["name"] / f"t{t}" / f"{order}.md"
-            if out.is_file() and parse_preference(out.read_text(encoding="utf-8")) and not args.force:
+            request = build_request(run_dir, ok, p, t, a, b)
+            if load_judgment(out, request, args.judge) is not None and not args.force:
                 continue
-            jobs.append((p, t, order, a, b, out))
+            jobs.append((p, t, order, request, out))
     save_json(assign_path, assign)
 
     def work(job):
-        p, t, order, a, b, out = job
-        texts = [(run_dir / ok[(p["name"], t, lab)]["path"]).read_text(encoding="utf-8") for lab in (a, b)]
-        request = judge_request(p, *texts)
+        p, t, order, request, out = job
         out.parent.mkdir(parents=True, exist_ok=True)
         out.with_name(f"{order}.request.md").write_text(request, encoding="utf-8", newline="\n")
+        meta_path = out.with_name(f"{order}.meta.json")
+        if meta_path.exists():
+            meta_path.unlink()
         cwd = stage / f"j{random.randrange(16 ** 6):06x}"
         cwd.mkdir(parents=True)
-        result = run_once(args.judge, cwd, request, out, args.timeout, args.retries)
+        result = run_once(args.judge, cwd, request, out, args.timeout, args.retries, accept=parse_preference)
+        verdict = out.read_text(encoding="utf-8", errors="replace") if result["ok"] else ""
+        save_json(meta_path, {"ok": result["ok"], "attempts": result["attempts"], "preference": parse_preference(verdict) if result["ok"] else None,
+                              "request_sha": sha(request), "verdict_sha": sha(verdict) if result["ok"] else None, "judge": args.judge})
         return f"{p['name']} t{t} {order}", result
 
     print(f"判定 {len(jobs)} 件（並列 {args.jobs}）")
@@ -376,7 +469,7 @@ def cmd_judge(args) -> int:
     run["judge"] = {"command": args.judge, "version": command_version(args.judge), "seed": args.seed}
     save_json(run_dir / "run.json", run)
     shutil.rmtree(stage, ignore_errors=True)
-    return 1 if failed else 0
+    return 1 if failed or bad else 0
 
 
 # ---------------------------------------------------------------------------
@@ -415,26 +508,30 @@ def cmd_report(args) -> int:
     run = load_run(run_dir)
     labels = [a["label"] for a in run["arms"]]
     assign = json.loads((run_dir / "assign.json").read_text(encoding="utf-8")) if (run_dir / "assign.json").is_file() else {}
-    gens = {(g["prompt"], g["trial"], g["arm"]): g for g in run["generations"]}
+    gens, bad = valid_generations(run_dir, run)      # 記録と本文・条件が合わない応答は集計しない
+    problems = {(name, t, lab): problem for name, t, lab, problem in bad}
+    judge_command = run.get("judge", {}).get("command")
     rows = []
     for p in run["prompts"]:
         for t in range(1, run["trials"] + 1):
             row = {"prompt": p["name"], "hash": p["hash"], "trial": t, "arms": {}, "orders": {}}
             for lab in labels:
                 g = gens.get((p["name"], t, lab))
-                if g and g["ok"]:
-                    row["arms"][lab] = measure((run_dir / g["path"]).read_text(encoding="utf-8"), p)
-                else:
-                    row["arms"][lab] = None
+                row["arms"][lab] = measure((run_dir / g["path"]).read_text(encoding="utf-8"), p) if g else None
             if None in row["arms"].values():
-                row["result"] = "生成失敗"
+                reasons = sorted({problems.get((p["name"], t, lab), "生成されていない") for lab in labels if row["arms"][lab] is None})
+                row["result"] = "生成失敗" if reasons == ["生成失敗"] else "生成の記録が不整合（" + "、".join(reasons) + "）"
                 rows.append(row)
                 continue
             first = assign.get(f"{p['name']}/t{t}", {}).get("order1")
+            if first and sorted(first) != sorted(labels):
+                first = None
             prefs = []
             for order, ab in (("order1", first), ("order2", first[::-1] if first else None)):
                 path = run_dir / "judge" / p["name"] / f"t{t}" / f"{order}.md"
-                raw = parse_preference(path.read_text(encoding="utf-8")) if ab and path.is_file() else None
+                # 失敗した判定、古い本文への判定、別の判定コマンドの判定、あとから書き換えられた判定は読まない
+                meta = load_judgment(path, build_request(run_dir, gens, p, t, *ab), judge_command) if ab else None
+                raw = meta["preference"] if meta else None
                 pref = {"A": ab[0], "B": ab[1]}.get(raw, raw) if raw else None
                 row["orders"][order] = {"A": ab[0] if ab else None, "B": ab[1] if ab else None, "raw": raw, "preferred": pref}
                 prefs.append(pref)
@@ -445,13 +542,45 @@ def cmd_report(args) -> int:
         kind = next(p["kind"] for p in run["prompts"] if p["name"] == row["prompt"])
         row["lint"] = {lab: lint_record((run_dir / gens[(row["prompt"], row["trial"], lab)]["path"]).read_text(encoding="utf-8"), kind)
                        for lab in labels if row["arms"].get(lab)}
-    save_json(run_dir / "results.json", {"caveat": CAVEAT, "arms": run["arms"], "rows": rows})
-    (run_dir / "results.md").write_text(render_report(run, rows, labels), encoding="utf-8", newline="\n")
+    audit = audit_logs(run_dir, run, rows)
+    save_json(run_dir / "results.json", {"caveat": CAVEAT, "arms": run["arms"], "rows": rows, "audit": audit})
+    (run_dir / "results.md").write_text(render_report(run, rows, labels, audit), encoding="utf-8", newline="\n")
     print(f"書き出し: {run_dir / 'results.md'}")
     return 0
 
 
-def render_report(run: dict, rows: list, labels: list) -> str:
+def audit_logs(run_dir: Path, run: dict, rows: list) -> dict:
+    """スキルなしの系統と判定役のログに、読んではいけない場所の名前が出ていないかを見る。依頼文と応答の本文に含まれる語は除けないので、出たら人が読む。
+    見るべきログは記録から列挙する。ログが無ければ「該当なし」ではなく「確認不能」と報告する。"""
+    none_arms = {a["label"] for a in run["arms"] if a["source"] == "none"}
+    expected = [(run_dir / g["path"]).with_suffix(".log") for g in run["generations"] if g["arm"] in none_arms]
+    for row in rows:
+        expected += [run_dir / "judge" / row["prompt"] / f"t{row['trial']}" / f"{order}.log"
+                     for order, o in row["orders"].items() if o.get("raw")]
+    found, missing = [], []
+    for log in expected:
+        if not log.is_file():
+            missing.append(log.relative_to(run_dir).as_posix())
+            continue
+        names = sorted(set(LEAK_RE.findall(log.read_text(encoding="utf-8", errors="replace"))))
+        if names:
+            found.append({"log": log.relative_to(run_dir).as_posix(), "names": names})
+    return {"expected": len(expected), "missing": missing, "found": found}
+
+
+def audit_line(audit: dict) -> str:
+    checked = audit["expected"] - len(audit["missing"])
+    parts = []
+    if audit["found"]:
+        parts.append("該当あり: " + "、".join(f"{a['log']}（{' '.join(a['names'])}）" for a in audit["found"]) + " → 人が読んで確かめること")
+    elif checked:
+        parts.append(f"{checked} 本を点検して該当なし")
+    if audit["missing"]:
+        parts.append(f"ログ欠落 {len(audit['missing'])} 本は確認不能")
+    return "。".join(parts) if parts else "点検するログが無い（確認不能）"
+
+
+def render_report(run: dict, rows: list, labels: list, audit: dict) -> str:
     out = ["# 由来を伏せた読み比べの結果", "", f"> {CAVEAT}", ""]
     out += ["## 条件", "",
             f"- 作成: {run['created']} / スキルのコミット: {run['skill_repo'].get('commit')}（未コミットの変更: {'あり' if run['skill_repo'].get('dirty') else 'なし'}）",
@@ -460,7 +589,10 @@ def render_report(run: dict, rows: list, labels: list) -> str:
     for a in run["arms"]:
         what = {"skill": "このリポジトリのスキル", "none": "スキルなし（空のディレクトリ）"}.get(a["source"], f"別の版のスキル（{Path(a['source']).name}）")
         out.append(f"- 系統 `{a['label']}`: {what}" + (f"、写しのハッシュ {a['tree']}" if a["tree"] else ""))
-    out += ["- 判定役に渡したのは、依頼文・2 つの応答・問いだけ（系統の名前、モデル名、版、過去の結果、lint の結果、期待出力は渡していない）", "",
+    out += ["- 判定役に渡したのは、依頼文・2 つの応答・問いだけ（系統の名前、モデル名、版、過去の結果、lint の結果、期待出力は渡していない）",
+            "- 作業ディレクトリと依頼本文は分けているが、ファイルの読み取りの隔離は保証していない。他の系統、元のリポジトリ、結果・割り当て・ログ、利用環境の設定へアクセスできる可能性が残る。"
+            "由来の情報を依頼文に直接含めない比較であり、厳密な盲検を保証するものではない",
+            "- ログの点検（スキルなしの系統と判定役のログに、スキルや結果のファイル名が出ていないか）: " + audit_line(audit), "",
             "## 対ごとの結果", "",
             "| 依頼（ハッシュ） | 試行 | 1 回目（A / B → 選好） | 2 回目（A / B → 選好） | 結果 | 字数 " + " / ".join(labels) + " | 字数条件 " + " / ".join(labels) + " |",
             "|---|---|---|---|---|---|---|"]

@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "exit": 0,
+      "seconds": 30.0,
+      "ok": true
+    }
+  ],
+  "preference": "A",
+  "request_sha": "f736df91c909786b",
+  "judge": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+  "verdict_sha": "3cb32c875d761987",
+  "migrated_fields": [
+    "verdict_sha"
+  ]
+}

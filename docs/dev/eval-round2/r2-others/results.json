@@ -1,0 +1,365 @@
+{
+  "caveat": "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、一般的な勝率や品質向上を示しません。生成・判定モデルの偏り、提示順序、長さの影響が残ります。過去の評価を参考に修正した既知の課題を含むため、独立した未知の課題での検証ではありません。lint は確認候補を示すもので、文学的品質や誤りの確定を表しません。",
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "8dd360996c03"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "rows": [
+    {
+      "prompt": "flash-talkative-comedy",
+      "hash": "f316938e8a3c",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1390,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1464,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "B",
+          "preferred": "base"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 4,
+            "rules": [
+              "T02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 2,
+            "locations": 5,
+            "rules": [
+              "K00",
+              "L02"
+            ]
+          }
+        },
+        "base": {
+          "FAIL": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "N05"
+            ]
+          },
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 4,
+            "rules": [
+              "T02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 10,
+            "rules": [
+              "K00",
+              "L02",
+              "R01",
+              "T01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1218,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 808,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 2,
+            "locations": 0,
+            "rules": [
+              "L01",
+              "R03"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 2,
+            "locations": 5,
+            "rules": [
+              "K00",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 0,
+            "rules": [
+              "R03"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 5,
+            "rules": [
+              "K00",
+              "L01",
+              "L02",
+              "N05",
+              "R01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "battle-spatial-causality",
+      "hash": "a7bd0c203885",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1548,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1411,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "A",
+          "preferred": "base"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "with": {
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 3,
+            "rules": [
+              "K00",
+              "L01",
+              "L02",
+              "T01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 9,
+            "rules": [
+              "T02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 7,
+            "rules": [
+              "K00",
+              "L01",
+              "L02",
+              "P04",
+              "T01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "children-polite-repetition",
+      "hash": "27eb5aa73192",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1473,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1423,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 0,
+            "rules": [
+              "L01"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 3,
+            "rules": [
+              "K00",
+              "L02",
+              "O02"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 0,
+            "rules": [
+              "L01"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 4,
+            "rules": [
+              "K00",
+              "L02",
+              "N05",
+              "P04"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 3162,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 2701,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "B",
+          "preferred": "base"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "with": {
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 4,
+            "rules": [
+              "K17",
+              "L01",
+              "L02",
+              "L04",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "T01"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 6,
+            "rules": [
+              "K10",
+              "L01",
+              "L02",
+              "L04",
+              "P02"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "audit": {
+    "expected": 15,
+    "missing": [],
+    "found": []
+  }
+}
