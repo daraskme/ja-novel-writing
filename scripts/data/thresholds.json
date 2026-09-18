@@ -1,0 +1,686 @@
+{
+  "version": 1,
+  "_about": "novel_lint.py の警報線の唯一の権威。references や SKILL.md に同じ数値を書かない（ID と名称で参照する）。密度の単位は narr=地の文1000字あたり、total=全文1000字あたり。calibrated: aozora33=青空文庫33作品の計量と照合済み / partial=照合したが現代文では未較正 / none=未較正の初期値。作品ごとの上書きは style/lint.json の overrides に理由つきで書く。",
+  "guards": {
+    "density_min_chars": 600,
+    "density_min_count": 3,
+    "run_share_min_sentences": 20,
+    "cv_min_sentences": 12,
+    "cv_full_sentences": 30,
+    "para_cv_min_paras": 8,
+    "dialogue_rate_min_utterances": 10,
+    "body_min_chars": 100
+  },
+  "dialogue_ratio_target": {
+    "bungei": 0.3,
+    "entertainment": 0.45,
+    "web": 0.45,
+    "tolerance": 0.15
+  },
+  "rules": {
+    "R01": {
+      "name": "同一文末の連続",
+      "kind": "run",
+      "calibrated": "aozora33",
+      "hint": "文末だけ差し替えない。刻んだ動作を一文に束ねる、目の前の状態をル形に落とす、台詞で切る",
+      "profiles": {
+        "default": {
+          "info": 4,
+          "warn": 6,
+          "strong": 8
+        },
+        "keitai": {
+          "info": 5,
+          "warn": 8,
+          "strong": 12
+        }
+      }
+    },
+    "R02": {
+      "name": "4連以上の同一文末に属する文の割合",
+      "kind": "upper",
+      "calibrated": "aozora33",
+      "hint": "単調が意図（喪・解離・報告体）でなければ、出来事と状態を書き分ける",
+      "profiles": {
+        "default": {
+          "warn": 0.35,
+          "strong": 0.5
+        }
+      }
+    },
+    "R03": {
+      "name": "た止め率（文末の表層パターンによる近似。発話タグ文を除く）",
+      "kind": "upper",
+      "calibrated": "aozora33",
+      "hint": "状態・知覚までタ形で報告していないか見る",
+      "profiles": {
+        "default": {
+          "warn": 0.8
+        }
+      }
+    },
+    "L01": {
+      "name": "文長の変動係数（地の文）",
+      "kind": "lower",
+      "calibrated": "aozora33",
+      "hint": "同じ長さの文が並んでいる。平時は因果と観察を一文で繋ぎ、止めたい所だけ短く切る",
+      "profiles": {
+        "default": {
+          "info": 0.5,
+          "warn": 0.4
+        }
+      }
+    },
+    "L02": {
+      "name": "平均文長の下限（地の文）",
+      "kind": "lower",
+      "calibrated": "partial",
+      "hint": "短文の刻みすぎ。無人の観察は繋ぐ（短文基調を宣言した作品は keep）",
+      "profiles": {
+        "default": {
+          "info": 22
+        },
+        "web": {
+          "info": 15
+        }
+      }
+    },
+    "L03": {
+      "name": "長い文",
+      "kind": "list_over",
+      "calibrated": "partial",
+      "hint": "一本の運動が通っているか。節を並べただけなら割る",
+      "profiles": {
+        "bungei": {
+          "info": 120
+        },
+        "entertainment": {
+          "info": 100
+        },
+        "web": {
+          "info": 80
+        }
+      }
+    },
+    "L04": {
+      "name": "連続5文の長さが揃う",
+      "kind": "flag",
+      "calibrated": "none",
+      "hint": "メトロノーム。長短の差を作る（列挙・儀式の反復は keep）",
+      "profiles": {
+        "default": {
+          "info": 0.25
+        }
+      }
+    },
+    "P01": {
+      "name": "長い段落",
+      "kind": "list_over",
+      "calibrated": "partial",
+      "hint": "ショットか情報が変わる所で切れないか",
+      "profiles": {
+        "default": {
+          "info": 400
+        },
+        "web": {
+          "info": 200,
+          "warn": 300
+        }
+      }
+    },
+    "P02": {
+      "name": "段落長の変動係数",
+      "kind": "lower",
+      "calibrated": "aozora33",
+      "hint": "段落の長さが揃っている。密な段落の後に行動の一行か短い台詞で呼吸を変える",
+      "profiles": {
+        "default": {
+          "info": 0.55,
+          "warn": 0.45
+        },
+        "web": {
+          "info": 0.45
+        }
+      }
+    },
+    "P03": {
+      "name": "一文段落率（地の文段落）",
+      "kind": "band",
+      "calibrated": "aozora33",
+      "hint": "一文ごとの改行が続くと全文が同じ重さになる",
+      "profiles": {
+        "bungei": {
+          "info_over": 0.5
+        },
+        "entertainment": {
+          "info_over": 0.7
+        },
+        "web": {
+          "info_over": 0.85,
+          "info_under": 0.15
+        }
+      }
+    },
+    "P04": {
+      "name": "短い一文段落の連続",
+      "kind": "run",
+      "calibrated": "none",
+      "hint": "決め文の連打。声の乗っていない行は前後と繋ぐ",
+      "profiles": {
+        "default": {
+          "info": 4
+        },
+        "web": {
+          "info": 6
+        }
+      },
+      "short_chars": 25
+    },
+    "P05": {
+      "name": "会話を挟まない地の文の塊",
+      "kind": "list_over",
+      "calibrated": "none",
+      "hint": "説明が続いていないか。名場面の風景・追想なら keep",
+      "profiles": {
+        "bungei": {
+          "info": 1500
+        },
+        "entertainment": {
+          "warn": 800
+        },
+        "web": {
+          "warn": 600
+        }
+      }
+    },
+    "T01": {
+      "name": "体言止めの連続",
+      "kind": "run",
+      "calibrated": "aozora33",
+      "hint": "誰の声でもない観察の刻みなら繋ぐ。声が乗っているなら keep",
+      "profiles": {
+        "default": {
+          "info": 2,
+          "warn": 3
+        },
+        "web": {
+          "info": 3,
+          "warn": 4
+        }
+      }
+    },
+    "T02": {
+      "name": "体言止めの密度",
+      "kind": "density",
+      "unit": "narr",
+      "calibrated": "aozora33",
+      "hint": "同上",
+      "profiles": {
+        "default": {
+          "warn": 4
+        },
+        "web": {
+          "warn": 6
+        }
+      }
+    },
+    "S01": {
+      "name": "直喩の標識（ような/ように/みたい）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "simile_any",
+      "calibrated": "aozora33",
+      "hint": "説明を比喩に任せていないか。直接の言葉で書けるものは書く（目的の「ように」は対象外）",
+      "profiles": {
+        "default": {
+          "info": 5,
+          "warn": 7
+        }
+      }
+    },
+    "S02": {
+      "name": "まるで/あたかも/さながら",
+      "kind": "density",
+      "unit": "total",
+      "lexicon": "simile_marked",
+      "min_count": 2,
+      "calibrated": "aozora33",
+      "hint": "最初に浮かんだ喩えは捨て、視点人物の持ち物から探す。無ければ比喩なしで",
+      "profiles": {
+        "default": {
+          "warn": 1.0
+        }
+      }
+    },
+    "S03": {
+      "name": "同じ喩えの再使用",
+      "kind": "repeat",
+      "calibrated": "none",
+      "hint": "モチーフとして意図したものなら keep",
+      "profiles": {
+        "default": {
+          "warn": 2
+        }
+      }
+    },
+    "D01": {
+      "name": "会話比率（目標からの乖離）",
+      "kind": "target",
+      "calibrated": "partial",
+      "hint": "会話劇・独白の章なら keep。作品の目標は lint.json の D01.target で指定",
+      "profiles": {
+        "default": {
+          "info": 0.15
+        }
+      }
+    },
+    "D02": {
+      "name": "地の文を挟まない発話の連続",
+      "kind": "run",
+      "calibrated": "aozora33",
+      "hint": "話者を見失う手前で、その場面の物を使う一文か素のタグを置く。全台詞にビートを付けない",
+      "profiles": {
+        "bungei": {
+          "warn": 7,
+          "strong": 10
+        },
+        "default": {
+          "warn": 8,
+          "strong": 12
+        }
+      }
+    },
+    "D03": {
+      "name": "300字の窓に入る発話数",
+      "kind": "window",
+      "window": 300,
+      "calibrated": "aozora33",
+      "hint": "短い応酬の連打。一問一答になっていないか",
+      "profiles": {
+        "default": {
+          "info": 14
+        }
+      }
+    },
+    "K01": {
+      "name": "ダッシュの頻度",
+      "kind": "density",
+      "unit": "total",
+      "calibrated": "partial",
+      "hint": "削って成立するなら削る。沈黙はまず文の切り方で作る",
+      "profiles": {
+        "bungei": {
+          "info": 3,
+          "warn": 5
+        },
+        "entertainment": {
+          "info": 4,
+          "warn": 6
+        },
+        "web": {
+          "info": 5,
+          "warn": 8
+        }
+      }
+    },
+    "K02": {
+      "name": "三点リーダーの頻度",
+      "kind": "density",
+      "unit": "total",
+      "calibrated": "partial",
+      "hint": "淀む人物を絞る。間は台詞のあいだの即物的な一文で",
+      "profiles": {
+        "bungei": {
+          "info": 3,
+          "warn": 5
+        },
+        "entertainment": {
+          "info": 6,
+          "warn": 10
+        },
+        "web": {
+          "info": 8,
+          "warn": 12
+        }
+      }
+    },
+    "K03": {
+      "name": "「……」で始まる台詞の割合",
+      "kind": "upper",
+      "calibrated": "aozora33",
+      "hint": "全員が淀んでいる。淀む人物を一人に",
+      "profiles": {
+        "default": {
+          "warn": 0.15
+        },
+        "web": {
+          "warn": 0.2
+        }
+      }
+    },
+    "K04": {
+      "name": "文頭の接続詞（密度）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "conj_head",
+      "calibrated": "aozora33",
+      "hint": "論理の橋を語順と内容で架ける（推理の論証や理屈っぽい語り手は keep）",
+      "profiles": {
+        "default": {
+          "info": 4,
+          "warn": 5
+        }
+      }
+    },
+    "K05": {
+      "name": "文頭に接続詞を持つ文の割合",
+      "kind": "upper",
+      "calibrated": "aozora33",
+      "hint": "同上",
+      "profiles": {
+        "default": {
+          "info": 0.12,
+          "warn": 0.15
+        }
+      }
+    },
+    "K06": {
+      "name": "段落頭の接続詞率",
+      "kind": "upper",
+      "calibrated": "aozora33",
+      "hint": "段落が論説文の繋ぎ方になっている",
+      "profiles": {
+        "default": {
+          "warn": 0.25
+        }
+      }
+    },
+    "K07": {
+      "name": "フィルタ・認知動詞",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "filter_verbs",
+      "calibrated": "aozora33",
+      "hint": "知覚対象を主語に戻す。気づき自体が出来事なら keep",
+      "profiles": {
+        "default": {
+          "info": 1.7,
+          "warn": 2.5
+        },
+        "web": {
+          "info": 2.5,
+          "warn": 3.5
+        }
+      }
+    },
+    "K08": {
+      "name": "感情の名指し",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "emotion_words",
+      "calibrated": "partial",
+      "hint": "通過点なら keep。山場は物への行為と知覚で。K09 と合算で見る（片方だけ下げない）",
+      "profiles": {
+        "default": {
+          "info": 2,
+          "warn": 4
+        }
+      }
+    },
+    "K09": {
+      "name": "身体反応の定型",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "body_template",
+      "repeat_warn": 2,
+      "calibrated": "partial",
+      "hint": "同義語に置き換えない。その人物にしか出ない反応か、その場の物との関わりへ",
+      "profiles": {
+        "default": {
+          "info": 1.5,
+          "warn": 3
+        }
+      }
+    },
+    "K10": {
+      "name": "情緒副詞",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "soft_adverbs",
+      "repeat_window": 2000,
+      "repeat_warn": 3,
+      "calibrated": "aozora33",
+      "hint": "削るか、動詞を具体的にする。近縁語へ滑らない",
+      "profiles": {
+        "default": {
+          "info": 2,
+          "warn": 4
+        }
+      }
+    },
+    "K11": {
+      "name": "程度副詞・空の強調",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "degree_adverbs",
+      "calibrated": "aozora33",
+      "hint": "強調語を外して、強調の元になった物を書く",
+      "profiles": {
+        "default": {
+          "info": 3,
+          "warn": 5
+        }
+      }
+    },
+    "K12": {
+      "name": "ふと・思わず・いつの間にか",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "unmotivated",
+      "min_count": 2,
+      "calibrated": "aozora33",
+      "hint": "動機を省く標識。きっかけになった知覚を書くか、削る",
+      "profiles": {
+        "default": {
+          "warn": 1.33
+        }
+      }
+    },
+    "K13": {
+      "name": "ぼかし語",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "hedges",
+      "calibrated": "aozora33",
+      "hint": "中身を決めてから書く。否認している人物の声なら keep",
+      "profiles": {
+        "default": {
+          "info": 2,
+          "warn": 3
+        }
+      }
+    },
+    "K14": {
+      "name": "彼／彼女（地の文）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "pronouns",
+      "calibrated": "aozora33",
+      "hint": "省略＞名前＞関係名の順で。名を与えない人物で通す作品は keep",
+      "profiles": {
+        "default": {
+          "info": 5,
+          "warn": 7
+        }
+      }
+    },
+    "K15": {
+      "name": "のだった／のである",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "nodatta",
+      "calibrated": "partial",
+      "hint": "段落末の感慨になっていないか。事情を明かす文だけに使う",
+      "profiles": {
+        "default": {
+          "info": 1,
+          "warn": 2.5
+        }
+      }
+    },
+    "K16": {
+      "name": "否定対比の決め文（AではないBだ）",
+      "kind": "density",
+      "unit": "total",
+      "lexicon": "not_x_but_y",
+      "min_count": 2,
+      "calibrated": "aozora33",
+      "hint": "見得を切る型。B をそのまま書く（実際に誤解→訂正を歩んだ筋なら keep）",
+      "profiles": {
+        "default": {
+          "warn": 0.67
+        }
+      }
+    },
+    "K17": {
+      "name": "読点が4つ以上の文",
+      "kind": "list",
+      "calibrated": "aozora33",
+      "hint": "語順で誤読を防げないか（饒舌体は keep）",
+      "profiles": {
+        "default": {
+          "info": 4
+        }
+      }
+    },
+    "K18": {
+      "name": "抽象名詞の擬人化（沈黙が落ちた型）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "abstract_personification",
+      "min_count": 2,
+      "calibrated": "none",
+      "hint": "人か物を主語に戻す。約物を減らした代わりにここへ滑っていないか",
+      "profiles": {
+        "default": {
+          "info": 0.7,
+          "warn": 1.5
+        }
+      }
+    },
+    "K19": {
+      "name": "定型の所作（頷く・微笑む・肩をすくめる等）",
+      "kind": "density",
+      "unit": "total",
+      "lexicon": "stock_beats",
+      "calibrated": "none",
+      "hint": "全台詞にビートを付けない。置くなら台詞と逆向きの、その場にしかない物で",
+      "profiles": {
+        "default": {
+          "info": 2.5,
+          "warn": 4.5
+        }
+      }
+    },
+    "K20": {
+      "name": "付帯の飾り句・表情の定型（〜を滲ませて型）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "attached_flourish",
+      "calibrated": "none",
+      "hint": "言い方の説明を外し、事実か動作を書く",
+      "profiles": {
+        "default": {
+          "info": 0.8,
+          "warn": 1.6
+        }
+      },
+      "min_count": 2
+    },
+    "K21": {
+      "name": "語り手の評価・驚きの語",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "narrator_evaluation",
+      "calibrated": "none",
+      "hint": "評価の元になった物を書く。視点人物の口癖・判断として言わせるなら keep",
+      "profiles": {
+        "default": {
+          "info": 1.5,
+          "warn": 3
+        }
+      }
+    },
+    "K22": {
+      "name": "報告書・評論の語彙",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "stiff_kango",
+      "calibrated": "none",
+      "hint": "普通の動詞に戻す。理屈っぽい語り手・職業語なら keep",
+      "profiles": {
+        "default": {
+          "info": 2.5,
+          "warn": 5
+        }
+      }
+    },
+    "K23": {
+      "name": "総括・教訓・意味づけの文",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "summary_moral",
+      "calibrated": "none",
+      "hint": "削って前後が繋がるか試す。繋がらなければ行為・物・台詞に書き換える",
+      "profiles": {
+        "default": {
+          "info": 0.7,
+          "warn": 1.4
+        }
+      },
+      "min_count": 2
+    },
+    "K24": {
+      "name": "説明台詞の標識",
+      "kind": "density",
+      "unit": "total",
+      "lexicon": "expository_dialogue",
+      "calibrated": "none",
+      "hint": "双方が知っていることを読者のために言わせない。意見の食い違いに変える",
+      "profiles": {
+        "default": {
+          "info": 0.3
+        }
+      },
+      "min_count": 1
+    },
+    "K25": {
+      "name": "装飾タグ（呟いた・囁いた・吐き捨てた等）",
+      "kind": "density",
+      "unit": "total",
+      "lexicon": "decorated_tags",
+      "calibrated": "none",
+      "hint": "省略＞素のタグ。言い方は台詞の中身と間で伝える",
+      "profiles": {
+        "default": {
+          "info": 1.5,
+          "warn": 3
+        }
+      }
+    },
+    "K26": {
+      "name": "文頭の一人称",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "first_person_head",
+      "calibrated": "none",
+      "hint": "主語は切り替わる所だけ。一人称小説でも二文目からは省ける",
+      "profiles": {
+        "default": {
+          "info": 6,
+          "warn": 9
+        }
+      }
+    }
+  }
+}

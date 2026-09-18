@@ -1,0 +1,20 @@
+# novel.toml — プロジェクト設定。このファイルがあるディレクトリを serial プロジェクトとみなす。
+# 「例:」は見本作『索道日誌』のもの。値の選択肢は | で区切ってある。
+
+[work]
+title = "{{TITLE}}"                        # 例: "索道日誌"
+profile = "{{PROFILE}}"                    # bungei | entertainment | web
+length = "{{LENGTH}}"                      # flash | short | long
+medium = "{{MEDIUM}}"                      # narou | kakuyomu | alphapolis | pixiv | print | none
+pov = "{{POV}}"                            # 例: "三人称一元（C01）"
+tense = "{{TENSE}}"                        # 例: "過去形基調"
+chapter_target_chars = {{CHAPTER_CHARS}}   # 1 章の目標字数。実測は count_chars.py
+
+[contract]
+promise = ""                               # 読者に約束する快楽を 1〜2 文。例: "小さな記録の食い違いを、仕事の手つきで解いていく静かな謎解き"
+keep = []                                  # 様式として残すもの（lint やレビューで消さない）。例: ["整備手順の描写", "土地の語彙が混じる台詞"]
+chapter_hook = "{{CHAPTER_HOOK}}"          # required | optional | off（章末に開いた問いを置くか）
+emotion_naming = "{{EMOTION_NAMING}}"      # restrained | balanced | direct（感情を名指す度合い）
+
+[format]
+indent = "fullwidth"                       # fullwidth（原稿で字下げ）| none | export（原稿は字下げ無し、export.py で付ける）
