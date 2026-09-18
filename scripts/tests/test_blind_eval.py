@@ -146,6 +146,11 @@ class BlindEvalTest(unittest.TestCase):
         self.assertEqual(rbe.settle(None, "with"), "失敗")
         self.assertEqual(rbe.parse_preference("理由…\n選好: A\n追記\n選好：Ｂ"), "B")
         self.assertIsNone(rbe.parse_preference("どちらとも言えない"))
+        self.assertEqual(rbe.parse_preference("4. **選好: 差なし**"), "差なし")
+        self.assertEqual(rbe.parse_preference("- `選好: A`"), "A")
+        # 指示文を写しただけの行は選好ではない
+        self.assertIsNone(rbe.parse_preference("最後の行に `選好: A` / `選好: B` / `選好: 差なし` / `選好: 判定不能` のどれかを書く"))
+        self.assertEqual(rbe.parse_preference("選好: B\n形式は `選好: A` / `選好: B` のどれか、とのことでした"), "B")
 
 
 if __name__ == "__main__":
