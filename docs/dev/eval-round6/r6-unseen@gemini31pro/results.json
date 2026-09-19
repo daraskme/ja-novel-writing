@@ -1,0 +1,345 @@
+{
+  "caveat": "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、一般的な勝率や品質向上を示しません。生成・判定モデルの偏り、提示順序、長さの影響が残ります。過去の評価を参考に修正した既知の課題を含むため、独立した未知の課題での検証ではありません。lint は確認候補を示すもので、文学的品質や誤りの確定を表しません。",
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "rows": [
+    {
+      "prompt": "kaidan-next-room",
+      "hash": "0ec54e262f8a",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1036,
+          "length": "範囲内"
+        },
+        "base": {
+          "chars": 1320,
+          "length": "範囲内"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 6,
+            "rules": [
+              "C07",
+              "K00",
+              "L01"
+            ]
+          }
+        },
+        "base": {
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 11,
+            "rules": [
+              "K00",
+              "N05",
+              "P04",
+              "R01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "library-bookmark-mystery",
+      "hash": "eb64d29b6626",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1421,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1137,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "A",
+          "preferred": "base"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 4,
+            "rules": [
+              "C07",
+              "K00",
+              "L01"
+            ]
+          }
+        },
+        "base": {
+          "FAIL": {
+            "diagnostics": 1,
+            "locations": 13,
+            "rules": [
+              "N05"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 8,
+            "rules": [
+              "C05",
+              "K00",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "sf-last-report",
+      "hash": "a4b4c18b9e7b",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1176,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1237,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 5,
+            "rules": [
+              "C07",
+              "K00",
+              "L01",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 9,
+            "rules": [
+              "K00",
+              "N05",
+              "O02",
+              "R01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "jidai-pawned-sword",
+      "hash": "623101c52656",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1239,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1270,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 5,
+            "rules": [
+              "C07",
+              "K00",
+              "L01",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 9,
+            "rules": [
+              "C09",
+              "K00",
+              "L01",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "bungei-unknown-key",
+      "hash": "4ab4568eff43",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1348,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1381,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 4,
+            "rules": [
+              "C07",
+              "K00",
+              "L01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "R01"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 2,
+            "locations": 6,
+            "rules": [
+              "K00",
+              "L01"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "audit": {
+    "expected": 15,
+    "missing": [],
+    "found": []
+  }
+}

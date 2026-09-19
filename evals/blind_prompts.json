@@ -9,11 +9,66 @@
       "text": "恋愛短編の山場の一場面だけ書いてほしい。高校の卒業式のあと、ずっと隠してきた気持ちを直球で告白する場面。感情はしっかり言葉にして、読んでて胸が熱くなるやつ。1200〜1500字。",
       "history": "評価ラウンド 1 の「依頼 3」。evals.json の id 3（推敲）でも id 6（駅前の告白）でもない。この依頼での敗因を受けて結びの文言を直したので、未知の課題ではない。"
     },
-    {"name": "flash-farewell-word", "kind": "flash", "from_evals": "flash-farewell-word"},
-    {"name": "flash-talkative-comedy", "kind": "comedy", "from_evals": "flash-talkative-comedy"},
-    {"name": "romance-direct-confession", "kind": "confession", "from_evals": "romance-direct-confession"},
-    {"name": "battle-spatial-causality", "kind": "battle", "from_evals": "battle-spatial-causality"},
-    {"name": "children-polite-repetition", "kind": "children", "from_evals": "children-polite-repetition"},
-    {"name": "web-episode-twelve-reminder", "kind": "serial", "from_evals": "web-episode-twelve-reminder"}
+    {
+      "name": "flash-farewell-word",
+      "kind": "flash",
+      "from_evals": "flash-farewell-word"
+    },
+    {
+      "name": "flash-talkative-comedy",
+      "kind": "comedy",
+      "from_evals": "flash-talkative-comedy"
+    },
+    {
+      "name": "romance-direct-confession",
+      "kind": "confession",
+      "from_evals": "romance-direct-confession"
+    },
+    {
+      "name": "battle-spatial-causality",
+      "kind": "battle",
+      "from_evals": "battle-spatial-causality"
+    },
+    {
+      "name": "children-polite-repetition",
+      "kind": "children",
+      "from_evals": "children-polite-repetition"
+    },
+    {
+      "name": "web-episode-twelve-reminder",
+      "kind": "serial",
+      "from_evals": "web-episode-twelve-reminder"
+    },
+    {
+      "name": "kaidan-next-room",
+      "kind": "horror",
+      "max_chars": 2000,
+      "text": "怪談を書いて。一人暮らしのアパートで、隣の部屋から毎晩聞こえる音の話。幽霊の正体は説明しないで、読み終わったあとにじわっと怖いやつがいい。2000字以内で。",
+      "history": "評価ラウンド 6 で追加。スキルの修正に使っていない依頼。"
+    },
+    {
+      "name": "library-bookmark-mystery",
+      "kind": "mystery",
+      "text": "日常の謎のショートショートを書いて。図書館で、返却される本に毎回同じ栞が挟まっている理由を、司書の主人公が突き止める話。手がかりは本文の中に全部出して、最後に読者が「ああ」となるようにして。1500字くらい。",
+      "history": "評価ラウンド 6 で追加。"
+    },
+    {
+      "name": "sf-last-report",
+      "kind": "flash",
+      "text": "SFの掌編を書いて。火星の基地に一人残った整備士が、地球への最後の定時連絡を送る場面。専門用語で煙に巻かないで、人の話として読ませてほしい。1200字前後。",
+      "history": "評価ラウンド 6 で追加。"
+    },
+    {
+      "name": "jidai-pawned-sword",
+      "kind": "flash",
+      "text": "時代小説の一場面を書いて。江戸の貧乏長屋で、浪人が刀を質に入れるかどうか迷う夜。説明口調にしないで、当時の暮らしの手触りで読ませてほしい。1500字くらい。",
+      "history": "評価ラウンド 6 で追加。"
+    },
+    {
+      "name": "bungei-unknown-key",
+      "kind": "flash",
+      "text": "文芸寄りの静かな掌編をお願いします。母の遺品整理をしている娘が、見覚えのない鍵を見つける話。泣かせにこないで、感情は抑えめに。1500字くらい。",
+      "history": "評価ラウンド 6 で追加。"
+    }
   ]
 }

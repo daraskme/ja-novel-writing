@@ -1,0 +1,215 @@
+{
+  "caveat": "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、一般的な勝率や品質向上を示しません。生成・判定モデルの偏り、提示順序、長さの影響が残ります。過去の評価を参考に修正した既知の課題を含むため、独立した未知の課題での検証ではありません。lint は確認候補を示すもので、文学的品質や誤りの確定を表しません。",
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "rows": [
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 1270,
+          "length": "範囲内"
+        },
+        "base": {
+          "chars": 1192,
+          "length": "不足"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 7,
+            "rules": [
+              "C07",
+              "K00",
+              "L01",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 8,
+            "rules": [
+              "K00",
+              "N05",
+              "O02",
+              "R01",
+              "X01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 587,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 523,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "B",
+          "preferred": "base"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "A",
+          "preferred": "base"
+        }
+      },
+      "result": "base",
+      "lint": {
+        "with": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 2,
+            "locations": 4,
+            "rules": [
+              "C07",
+              "K00"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 8,
+            "rules": [
+              "K00",
+              "L01",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 2824,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1226,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "A",
+          "preferred": "base"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "B",
+          "preferred": "base"
+        }
+      },
+      "result": "base",
+      "lint": {
+        "with": {
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 2,
+            "rules": [
+              "C09",
+              "L01",
+              "L04"
+            ]
+          }
+        },
+        "base": {
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 8,
+            "rules": [
+              "K00",
+              "L01",
+              "L02",
+              "N05"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "audit": {
+    "expected": 9,
+    "missing": [],
+    "found": []
+  }
+}

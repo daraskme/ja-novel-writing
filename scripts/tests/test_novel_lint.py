@@ -9,6 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import novel_lint as nl  # noqa: E402
 
+NLCHR = chr(10)
+
 
 def lint(text, profile="entertainment", only="", **kw):
     cfg = nl.Config(profile, "long", None)
@@ -452,10 +454,89 @@ class ShareAdvisory(unittest.TestCase):
         self.assertEqual(hits[0]["severity"], "INFO")
         self.assertGreaterEqual(len(hits[0]["locations"]), 2)
         self.assertEqual(len(self.c09("　会費は三千円。合わせて九千円を、残り二人で割った。")), 1)
+        self.assertEqual(len(self.c09("　二十枚の25％、つまり十枚だ。")), 1)
+        self.assertEqual(len(self.c09("　十人のうち三人が残った。")), 1)
 
     def test_idioms_without_a_quantity_are_silent(self):
-        for text in ["　話半分に聞いていた。", "　半分冗談のつもりだった。", "　うちの猫は窓辺にいる。", "　そのうち雨になる。"]:
+        for text in ["　話半分に聞いていた。", "　半分冗談のつもりだった。", "　うちの猫は窓辺にいる。", "　そのうち雨になる。",
+                     "　うちの二人の子供が来た。", "　二人で話半分に聞いた。", "　三人は面白半分でついてきた。"]:
             self.assertEqual(self.c09(text), [], text)
+
+
+class RangeAndNextStep(unittest.TestCase):
+    """--range と「次にやること」。検査の周回を止めるための案内で、判定は変えない（評価ラウンド 3〜4 の作業記録から）。"""
+
+    def run_cli(self, text, *args):
+        import io, tempfile, contextlib
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "draft.md"
+            path.write_text(text, encoding="utf-8")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+                code = nl.main([str(path), *args])
+        return code, buf.getvalue()
+
+    def test_parse_range(self):
+        self.assertEqual(nl.parse_range("1200-1500"), (1200, 1500))
+        self.assertEqual(nl.parse_range("1200〜1500"), (1200, 1500))
+        self.assertEqual(nl.parse_range("1500"), (1350, 1650, "approx"))
+        # 「約 N 字」は目安。下限をわずかに割っただけ（3% まで）なら範囲内。範囲の指定には遊びを付けない
+        self.assertEqual(nl.range_status(1346, nl.parse_range("1500")), "範囲内")
+        self.assertEqual(nl.range_status(1651, nl.parse_range("1500")), "超過 1 字")      # 上限には遊びを付けない
+        self.assertIn("下限は 1310 字まで可", nl.range_label(nl.parse_range("1500")))
+        self.assertEqual(nl.range_status(1499, nl.parse_range("1500-1500")), "不足 1 字")
+        self.assertEqual(nl.range_status(1300, nl.parse_range("1500")), "不足 50 字")
+        self.assertEqual(nl.range_status(1196, nl.parse_range("1200-1500")), "不足 4 字")
+        self.assertIsNone(nl.parse_range("1500-1200"))
+        self.assertIsNone(nl.parse_range("abc"))
+
+    def test_status_and_stop_signal(self):
+        text = "　彼は駅まで歩いた。雨は上がっていた。\n「遅いよ」\n　彼女は笑った。\n"
+        code, out = self.run_cli(text, "--length", "flash", "--range", "20-40", "--min-chars", "0")
+        self.assertEqual(code, 0)
+        self.assertIn("字数の指定 20〜40: 範囲内", out)
+        self.assertIn("これ以上は合わせにいかない", out)
+        self.assertIn("本文を変えていないなら、かけ直す必要は無い", out)
+        self.assertIn("確認のかけ直しは、してよい", out)
+        code, out = self.run_cli(text, "--length", "flash", "--range", "1200-1500", "--min-chars", "0")
+        self.assertIn("不足 ", out)
+        self.assertIn("まとめて書き足す", out)
+        self.assertNotIn("かけ直す必要は無い", out)      # 字数を直すなら、測り直しが要る。矛盾した案内を並べない（Codex レビュー 15）
+        self.assertNotIn("1.3 倍", out)
+        code, out = self.run_cli(text, "--length", "flash", "--range", "10", "--min-chars", "0")
+        self.assertIn("超過 ", out)
+
+    def test_fail_changes_the_next_step_but_not_the_exit_code_rule(self):
+        code, out = self.run_cli("　彼は笑った…\n", "--length", "flash", "--min-chars", "0")
+        self.assertEqual(code, 1)
+        self.assertIn("直したら 1 度かけ直して確かめる", out)
+        self.assertNotIn("かけ直す必要は無い", out)
+
+    def test_range_is_judged_per_file(self):
+        """2 本のファイルを渡しても、字数の指定は 1 本ずつ見る（合算して「超過」と言わない。Codex レビュー 15）。"""
+        import io, tempfile, contextlib
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for i in (1, 2):
+                path = Path(tmp) / f"ch{i}.md"
+                path.write_text("　彼は駅まで歩いた。雨は上がっていた。彼女は笑った。" + NLCHR, encoding="utf-8")
+                paths.append(str(path))
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                nl.main([*paths, "--length", "flash", "--range", "20-40", "--min-chars", "0"])
+        out = buf.getvalue()
+        self.assertNotIn("超過", out)
+        self.assertEqual(out.count("字数は指定の範囲内"), 2)
+
+    def test_long_form_without_range_has_no_next_step(self):
+        code, out = self.run_cli("　彼は駅まで歩いた。\n", "--length", "long", "--min-chars", "0")
+        self.assertNotIn("次にやること", out)
+
+    def test_bad_range_is_a_usage_error_and_json_carries_the_note(self):
+        code, _ = self.run_cli("　彼は歩いた。\n", "--range", "abc")
+        self.assertEqual(code, 2)
+        code, out = self.run_cli("　彼は歩いた。\n", "--length", "flash", "--range", "5-10", "--json", "--min-chars", "0")
+        self.assertIn("次にやること", json.loads(out)["notes"][-1])
 
 
 if __name__ == "__main__":

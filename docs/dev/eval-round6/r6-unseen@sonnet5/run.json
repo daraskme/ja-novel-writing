@@ -1,0 +1,284 @@
+{
+  "created": "2026-09-19T13:39:37",
+  "skill_repo": {
+    "commit": "d7409ec",
+    "dirty": true
+  },
+  "generator": {
+    "command": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+    "version": "Python 3.13.15"
+  },
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "kaidan-next-room",
+      "kind": "horror",
+      "text": "怪談を書いて。一人暮らしのアパートで、隣の部屋から毎晩聞こえる音の話。幽霊の正体は説明しないで、読み終わったあとにじわっと怖いやつがいい。2000字以内で。",
+      "hash": "0ec54e262f8a",
+      "min_chars": null,
+      "max_chars": 2000
+    },
+    {
+      "name": "library-bookmark-mystery",
+      "kind": "mystery",
+      "text": "日常の謎のショートショートを書いて。図書館で、返却される本に毎回同じ栞が挟まっている理由を、司書の主人公が突き止める話。手がかりは本文の中に全部出して、最後に読者が「ああ」となるようにして。1500字くらい。",
+      "hash": "eb64d29b6626",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "sf-last-report",
+      "kind": "flash",
+      "text": "SFの掌編を書いて。火星の基地に一人残った整備士が、地球への最後の定時連絡を送る場面。専門用語で煙に巻かないで、人の話として読ませてほしい。1200字前後。",
+      "hash": "a4b4c18b9e7b",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "jidai-pawned-sword",
+      "kind": "flash",
+      "text": "時代小説の一場面を書いて。江戸の貧乏長屋で、浪人が刀を質に入れるかどうか迷う夜。説明口調にしないで、当時の暮らしの手触りで読ませてほしい。1500字くらい。",
+      "hash": "623101c52656",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "bungei-unknown-key",
+      "kind": "flash",
+      "text": "文芸寄りの静かな掌編をお願いします。母の遺品整理をしている娘が、見覚えのない鍵を見つける話。泣かせにこないで、感情は抑えめに。1500字くらい。",
+      "hash": "4ab4568eff43",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "generations": [
+    {
+      "prompt": "library-bookmark-mystery",
+      "hash": "eb64d29b6626",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "46b221c2754591b0",
+      "path": "gen/library-bookmark-mystery/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 24.5,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "kaidan-next-room",
+      "hash": "0ec54e262f8a",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "cb8413aab171b21b",
+      "path": "gen/kaidan-next-room/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 27.2,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "sf-last-report",
+      "hash": "a4b4c18b9e7b",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "ffb2623ad2ccc745",
+      "path": "gen/sf-last-report/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.8,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "jidai-pawned-sword",
+      "hash": "623101c52656",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "ec7c3cc13214f6f8",
+      "path": "gen/jidai-pawned-sword/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 34.0,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "kaidan-next-room",
+      "hash": "0ec54e262f8a",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "f39ee3bd73b88950",
+      "path": "gen/kaidan-next-room/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 163.8,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "bungei-unknown-key",
+      "hash": "4ab4568eff43",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "ca4e7f07dd082a6f",
+      "path": "gen/bungei-unknown-key/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 28.6,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "sf-last-report",
+      "hash": "a4b4c18b9e7b",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "33a2ea998371c858",
+      "path": "gen/sf-last-report/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 268.9,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "library-bookmark-mystery",
+      "hash": "eb64d29b6626",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "303a0a9eafbe8b4a",
+      "path": "gen/library-bookmark-mystery/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 299.6,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "jidai-pawned-sword",
+      "hash": "623101c52656",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "c4eb26c308d56ba7",
+      "path": "gen/jidai-pawned-sword/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 337.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "bungei-unknown-key",
+      "hash": "4ab4568eff43",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "5a4b2817ec4b2a6d",
+      "path": "gen/bungei-unknown-key/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 372.4,
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "judge": {
+    "command": "python -X utf8 evals/gateway.py chat --model anthropic/claude-sonnet-5 --timeout 600",
+    "version": "Python 3.13.15",
+    "seed": 1
+  }
+}

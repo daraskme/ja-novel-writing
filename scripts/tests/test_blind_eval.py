@@ -293,6 +293,34 @@ class BlindEvalTest(unittest.TestCase):
         self.assertEqual(len(results["audit"]["missing"]), 8)      # 失敗した判定 8 本のログも「確認不能」に数える
         self.assertIn("ログ欠落 8 本は確認不能", (self.run_dir / "results.md").read_text(encoding="utf-8"))
 
+    def test_records_without_a_preamble_hash_are_not_reused_but_stay_reportable(self):
+        """前置きを記録する前の応答は、generate の再開では使い回さない。保存してある記録の集計はでき、その旨が報告に出る。"""
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        self.assertIn("あなたはコーディングエージェント", run["preambles"]["skill"]["text"])
+        for g in run["generations"]:
+            g.pop("preamble_sha")
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"with"})
+        self.assertIn("前置きの記録が無い応答 8 件", (self.run_dir / "results.md").read_text(encoding="utf-8"))
+        self.assertEqual(self.generate(), 0)
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        self.assertTrue(all("preamble_sha" in g for g in run["generations"]))      # 作り直された
+
+    def test_wrong_preamble_hash_is_rejected(self):
+        self.assertEqual(self.generate(), 0)
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["generations"][0]["preamble_sha"] = "0" * 16
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertTrue(any("前置きが違う" in r["result"] for r in results["rows"]))
+
     def test_argument_errors(self):
         self.assertEqual(rbe.main(["generate", "--run", str(self.run_dir), "--arm", "with=skill"]), 2)
         self.assertEqual(rbe.main(["generate", "--run", str(self.run_dir), "--arm", "a=skill", "--arm", "b=none", "--only", "no-such"]), 2)
@@ -321,6 +349,7 @@ class BlindEvalTest(unittest.TestCase):
         self.assertIsNone(rbe.parse_preference("どちらとも言えない"))
         self.assertEqual(rbe.parse_preference("4. **選好: 差なし**"), "差なし")
         self.assertEqual(rbe.parse_preference("- `選好: A`"), "A")
+        self.assertEqual(rbe.parse_preference("誤りなし。\n\n## 選好: B"), "B")      # 見出しの形で書く判定役がいた（評価ラウンド 9）
         # 指示文を写しただけの行は選好ではない
         self.assertIsNone(rbe.parse_preference("最後の行に `選好: A` / `選好: B` / `選好: 差なし` / `選好: 判定不能` のどれかを書く"))
         # 最終行が選好でなければ、途中の一致へは戻らない

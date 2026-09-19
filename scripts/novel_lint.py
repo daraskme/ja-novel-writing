@@ -1415,7 +1415,8 @@ def check_counting(doc: Doc, rep: Report):
         rep.add("C06", "INFO", "個数の宣言", f"{len(en)} 箇所。実際に挙げた数と合っているか数える", en, "")
     # C09 割合と内訳。「二十枚のうち五枚」を「半分」と書くような食い違いは機械では確かめきれないので、数量の近くにある割合・内訳の語の位置だけ知らせる
     quantity = re.compile(rf"{NUM}[ 　]*(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽|軒|通|席|票|杯|点|円|万|日|年|か月|ヶ月|ヵ月|時間|週間|歳|才|キロ|メートル|グラム|パーセント|％)")
-    share = re.compile(rf"半分|半数|半額|(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽)のうち|{NUM}分の{NUM}|{NUM}割(?!り)|{NUM}倍|(?:その)?うち(?:の)?[ 　]*{NUM}|残り(?:は|の|が)?[ 　]*{NUM}|合わせて[ 　]*{NUM}|合計[ 　]*{NUM}|計[ 　]*{NUM}")
+    share = re.compile(rf"(?<![話白び談])半分(?!冗談|本気)|半数|半額|(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽)のうち|{NUM}分の{NUM}|{NUM}割(?!り)|{NUM}倍|"
+                       rf"{NUM}[ 　]*(?:%|％|パーセント)|(?:その)?うち[、 　]*{NUM}[ 　]*(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽)|残り(?:は|の|が)?[ 　]*{NUM}|合わせて[ 　]*{NUM}|合計[ 　]*{NUM}|計[ 　]*{NUM}")
     amounts = [m.start() for m in quantity.finditer(text)]
     shares = [(line_of(text, m.start()), excerpt(text[max(0, m.start() - 14):m.end() + 10], 30)) for m in share.finditer(text)
               if any(abs(m.start() - q) <= 60 for q in amounts)]
@@ -1528,9 +1529,63 @@ def lint_text(text: str, cfg: Config, only: str = "", skip: str = "", min_chars:
     return public, rep.hits
 
 
-def render(path: str, stats: dict, hits: list, cfg: Config, max_locs: int, show_all: bool) -> str:
+def parse_range(spec: str):
+    """--range の値を (下限, 上限) にする。"1200-1500" は範囲、"1500" は約 1500 字（±1 割）。読めなければ None。"""
+    m = re.fullmatch(r"\s*(\d+)\s*(?:[-〜~]\s*(\d+))?\s*", spec or "")
+    if not m:
+        return None
+    if m.group(2):
+        low, high = int(m.group(1)), int(m.group(2))
+        return (low, high) if low <= high else None
+    n = int(m.group(1))
+    return round(n * 0.9), round(n * 1.1), "approx"
+
+
+def range_floor(bounds) -> int:
+    """「約 N 字」は目安なので、下限を 3% まで割っても範囲内として扱う（下限ぴったりへ合わせにいく周回を止めるため）。上限と、範囲の指定には遊びを付けない。"""
+    return bounds[0] - round(bounds[0] * 0.03) if len(bounds) > 2 else bounds[0]
+
+
+def range_label(bounds) -> str:
+    return f"約 {round((bounds[0] + bounds[1]) / 2)} 字（{bounds[0]}〜{bounds[1]}。下限は {range_floor(bounds)} 字まで可）" if len(bounds) > 2 else f"{bounds[0]}〜{bounds[1]}"
+
+
+def range_status(chars: int, bounds) -> str:
+    if chars < range_floor(bounds):
+        return f"不足 {bounds[0] - chars} 字"
+    if chars > bounds[1]:
+        return f"超過 {chars - bounds[1]} 字"
+    return "範囲内"
+
+
+def next_step(results: list, cfg: Config, bounds) -> str:
+    """検査の結果を読んだ直後に、次に何をするか（何をしないか）を 1 行で言う。周回を止めるための案内で、判定ではない。"""
+    parts, length_off = [], False
+    fails = sum(1 for r in results for h in r["hits"] if h["severity"] == "FAIL")
+    for r in results if bounds else []:      # 字数の指定は、ファイルごとに見る
+        name = f"{r['path']}: " if len(results) > 1 else ""
+        status = range_status(r["stats"]["chars"], bounds)
+        if status == "範囲内":
+            parts.append(f"{name}字数は指定の範囲内。これ以上は合わせにいかない")
+        elif status.startswith("不足"):
+            length_off = True
+            parts.append(f"{name}字数が{status}。欠けているやり取りか出来事があるかを先に考え、あれば不足分を一度にまとめて書き足す（上限 {bounds[1]} 字）。"
+                         "数十字ずつ継ぎ足しては測り直す、を繰り返さない。書き足したあとに 1 度測り直す")
+        else:
+            length_off = True
+            parts.append(f"{name}字数が{status}。核に触れない段落から削り、そのあとに 1 度測り直す")
+    if fails:
+        parts.append("FAIL の箇所を読んで誤りと確かめたものを直す。直したら 1 度かけ直して確かめる")
+    elif cfg.length in ("flash", "short") and not length_off:
+        parts.append("FAIL は無い。WARN・INFO は読んで fix / keep を決める（INFO の詳細は --all）。本文を変えていないなら、かけ直す必要は無い。"
+                     "数値を警報線の内側へ入れるためだけの書き直しはしない。誤りを直したときの確認のかけ直しは、してよい")
+    return "次にやること: " + "。".join(parts) if parts else ""
+
+
+def render(path: str, stats: dict, hits: list, cfg: Config, max_locs: int, show_all: bool, bounds=None) -> str:
     out = [f"== {path}  [{cfg.profile} / {cfg.length}]  {stats['chars']} 字（地の文 {stats['narration_chars']} 字、会話比率 "
-           f"{stats['dialogue_ratio'] if stats['dialogue_ratio'] is not None else '-'}）"]
+           f"{stats['dialogue_ratio'] if stats['dialogue_ratio'] is not None else '-'}）"
+           + (f"  字数の指定 {range_label(bounds)}: {range_status(stats['chars'], bounds)}" if bounds else "")]
     shown = [h for h in hits if h["severity"] != "INFO" or show_all]
     for h in shown:
         out.append(f"[{SEVERITY_LABEL[h['severity']]}] {h['rule']} {h['name']}: {h['message']}")
@@ -1571,12 +1626,17 @@ def main(argv=None) -> int:
     ap.add_argument("--skip", default="", help="外すルール群の頭文字（例: KO）")
     ap.add_argument("--max-locs", type=int, default=4, help="1 ルールあたりの表示箇所数（既定 4）")
     ap.add_argument("--min-chars", type=int, help="これ未満なら「極端に短い」と警告（既定 100）")
+    ap.add_argument("--range", dest="char_range", help="依頼された字数。1200-1500 か、約 N 字なら 1500（±1 割。目安なので、下限だけは 3% まで割っても範囲内とする）。ファイルごとに、1 行目の字数（count_chars.py の body と同じ数え方）と比べて知らせる")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         try:
             stream.reconfigure(encoding="utf-8")
         except Exception:
             pass
+    bounds = parse_range(args.char_range) if args.char_range else None
+    if args.char_range and bounds is None:
+        print(f"エラー: --range {args.char_range} を読めない。1200-1500 か 1500 の形で書く", file=sys.stderr)
+        return 2
     bad = [c for c in (args.only + args.skip).upper() if c not in GROUPS]
     if bad:
         print(f"エラー: ルール群 {bad} は無い。使えるのは {' '.join(GROUPS)}", file=sys.stderr)
@@ -1619,10 +1679,11 @@ def main(argv=None) -> int:
         contract = ("lint は確認する箇所を示す検知器で、修正命令ではない。FAIL も、該当行と前後の本文を読んで誤りと確かめたものだけ直す。"
                     "誤検出や意図した表現なら本文を変えず、理由を残して keep。完了の条件は FAIL が 0 になることではなく、指摘をすべて確認・処置すること。"
                     "C05〜C07 は検算対象の案内で、検算済みを意味しない。")
-        print(json.dumps({"files": results, "notes": cfg.notes + [contract]}, ensure_ascii=False, indent=1))
+        step = next_step(results, cfg, bounds)
+        print(json.dumps({"files": results, "notes": cfg.notes + [contract] + ([step] if step else [])}, ensure_ascii=False, indent=1))
     else:
         for r in results:
-            print(render_stats(r["path"], r["stats"]) if args.stats else render(r["path"], r["stats"], r["hits"], cfg, args.max_locs, args.all))
+            print(render_stats(r["path"], r["stats"]) if args.stats else render(r["path"], r["stats"], r["hits"], cfg, args.max_locs, args.all, bounds))
         for note in cfg.notes:
             print(f"注: {note}")
         if not args.stats:
@@ -1631,6 +1692,9 @@ def main(argv=None) -> int:
                   "FAIL は、その箇所を読んで誤りと確かめてから直す（機械は文脈を読めない。誤検出なら本文を変えず理由を残す）。"
                   "警報は一件ずつ fix か keep を選ぶ（比率の目標は無い。同義語への置き換えはしない）。"
                   "C05〜C07・C09 は案内で、検算済みを意味しない")
+            step = next_step(results, cfg, bounds)
+            if step:
+                print(step)
     return 1 if any_fail else 0
 
 

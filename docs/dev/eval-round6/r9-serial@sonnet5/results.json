@@ -1,0 +1,150 @@
+{
+  "caveat": "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、一般的な勝率や品質向上を示しません。生成・判定モデルの偏り、提示順序、長さの影響が残ります。過去の評価を参考に修正した既知の課題を含むため、独立した未知の課題での検証ではありません。lint は確認候補を示すもので、文学的品質や誤りの確定を表しません。",
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "489e3d6f8f3f"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "rows": [
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arms": {
+        "with": {
+          "chars": 2416,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 687,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 3,
+            "rules": [
+              "C09",
+              "L01",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "FAIL": {
+            "diagnostics": 2,
+            "locations": 4,
+            "rules": [
+              "N05",
+              "N05"
+            ]
+          },
+          "WARN": {
+            "diagnostics": 3,
+            "locations": 8,
+            "rules": [
+              "K03",
+              "N05",
+              "N05"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 1,
+            "locations": 6,
+            "rules": [
+              "K00"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 2,
+      "arms": {
+        "with": {
+          "chars": 1535,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1088,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "with",
+          "B": "base",
+          "raw": "A",
+          "preferred": "with"
+        },
+        "order2": {
+          "A": "base",
+          "B": "with",
+          "raw": "B",
+          "preferred": "with"
+        }
+      },
+      "result": "with",
+      "lint": {
+        "with": {
+          "INFO": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "C09"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 5,
+            "rules": [
+              "K00",
+              "L01",
+              "N05"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "audit": {
+    "expected": 6,
+    "missing": [],
+    "found": []
+  }
+}

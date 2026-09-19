@@ -1,0 +1,32 @@
+{
+  "kaidan-next-room/t1": {
+    "order1": [
+      "base",
+      "with"
+    ]
+  },
+  "library-bookmark-mystery/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  },
+  "sf-last-report/t1": {
+    "order1": [
+      "base",
+      "with"
+    ]
+  },
+  "jidai-pawned-sword/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  },
+  "bungei-unknown-key/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  }
+}

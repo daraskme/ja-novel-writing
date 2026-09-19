@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "exit": 0,
+      "seconds": 31.4,
+      "ok": true
+    }
+  ],
+  "preference": "A",
+  "request_sha": "b0b1cc961e42e8af",
+  "verdict_sha": "7797e4a91dedf7ad",
+  "judge": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -"
+}

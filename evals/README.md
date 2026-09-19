@@ -28,7 +28,7 @@ python -X utf8 evals/run_blind_eval.py report --run ../blind-runs/r1
 - 途中で失敗しても、同じ `--run` でもう一度実行すれば、済んだものを飛ばして続きから走る。失敗と再試行は `run.json` に残る。
 - 生成 1 件ごとに、別の作業ディレクトリを使う（生成役が下書きを置いても、ほかの試行から見えない）。スキルの系統への依頼文の前置きは、スキルのファイルを書き換えないこと、下書きの一時ファイルは作業ディレクトリの中に作ってよいことを告げる。
 - 別の判定役で読み直すときは、実行ディレクトリから `gen/`・`run.json`・`assign.json` を新しいディレクトリへ写し、`--judge` を替えて judge → report する（応答と A/B の割り当てが同じになる）。
-- ゲートウェイ経由の例: `--generator "python -X utf8 <絶対パス>/evals/gateway.py claude-code --model anthropic/claude-sonnet-5"`、`--judge "python -X utf8 <絶対パス>/evals/gateway.py chat --model google/gemini-3.1-pro-preview"`。作業ディレクトリが変わるので、`gateway.py` は絶対パスで渡す。入れ子の Claude Code には、読み取り、python の実行、作業ディレクトリの中でのファイル作成だけを許し、1 回あたりの上限額（既定 2 ドル）を付ける。
+- ゲートウェイ経由の例: `--generator "python -X utf8 <絶対パス>/evals/gateway.py claude-code --model anthropic/claude-sonnet-5"`、`--judge "python -X utf8 <絶対パス>/evals/gateway.py chat --model google/gemini-3.1-pro-preview"`。作業ディレクトリが変わるので、`gateway.py` は絶対パスで渡す。入れ子の Claude Code に確認なしで通すのは、読み取り、スキルの検査スクリプト（`novel_lint.py`・`count_chars.py`）の実行、作業ディレクトリの中でのファイル作成だけで、1 回あたりの上限額（既定 2 ドル）を付ける。これは Claude Code の権限設定による制限で、OS の隔離ではない。`--allow-any-python` を付けると、python の中から作業ディレクトリの外への書き込みも、鍵を使った直接の API 呼び出しもできる。鍵は入れ子の環境変数にあるので、信頼できる依頼文とスキルに対してだけ使い、費用の上限はゲートウェイの側（Vercel の予算設定）にも置く。
 
 ## 比較の条件として守っていること
 

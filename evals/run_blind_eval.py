@@ -75,6 +75,8 @@ QUESTIONS = {
     "battle": ["攻防の途中でも、人物と物の位置関係を追えたか。能力は依頼の範囲を守っているか。出来事の因果（何をしたから何が起きたか）を追えたか。"],
     "revise": ["依頼された深さで直しているか（頼まれていない展開の変更、声の変更が無いか）。元の文章の誤りを見つけて扱ったか。"
                "依頼が説明を求めているなら、説明が付いていること自体は欠点としない。"],
+    "horror": ["どこで怖さが立ち上がったか。説明を足しすぎず、読み終えたあとに怖さが残るか。"],
+    "mystery": ["謎を解く手がかりが、解決の前に本文に出ているか。解決は手がかりから導けるか。読み終えて腑に落ちたか。"],
     "general": ["依頼の条件を満たしたうえで、依頼が求める読後感がより得られたのはどちらか。本文のどこからそう感じたか。"],
 }
 
@@ -95,8 +97,8 @@ JUDGE_HEAD = """あなたは日本語小説の読者であり、編集者です�
 3. 誤り（字数・音数・時刻・日付などの数え間違い、事実の誤り、本文以外の混入）。無ければ「なし」
 4. 最後の行に、次のどれか 1 行だけ: `選好: A` / `選好: B` / `選好: 差なし` / `選好: 判定不能`
 """
-# 最終行に、選好だけが書かれているときだけ読む。指示文を写した行、引用（>）、コードブロックの中の「選好: A」は選好として読まない。
-PREFERENCE_RE = re.compile(r"^[\s*\-・]*(?:\d+[.．)）]\s*)?[`*]*選好\s*[:：]\s*[`*]*\s*(A|B|Ａ|Ｂ|差なし|判定不能)[`*。\s]*$")
+# 最終行に、選好だけが書かれているときだけ読む（見出し・箇条書き・太字の飾りは付いていてよい）。指示文を写した行、引用（>）、コードブロックの中の「選好: A」は選好として読まない。
+PREFERENCE_RE = re.compile(r"^[\s#*\-・]*(?:\d+[.．)）]\s*)?[`*]*選好\s*[:：]\s*[`*]*\s*(A|B|Ａ|Ｂ|差なし|判定不能)[`*。\s]*$")
 FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 # スキルなしの系統と判定役のログに出てはいけない名前（読み取りの隔離は保証していないので、事後に点検する）
 LEAK_RE = re.compile(r"SKILL\.md|ja-novel-writing|assign\.json|run\.json|results\.(?:json|md)|evals\.json|expected_output")
@@ -282,6 +284,7 @@ def cmd_generate(args) -> int:
         "comparison": "skill-vs-skill" if both_skill else "skill-vs-none",
         "trials": args.trials,
         "prompts": prompts,
+        "preambles": {"skill": {"sha": sha(PREAMBLE_SKILL), "text": PREAMBLE_SKILL}, "plain": {"sha": sha(PREAMBLE_PLAIN), "text": PREAMBLE_PLAIN}},
         "generations": [],
     }
     if (run_dir / "run.json").is_file():
@@ -294,7 +297,7 @@ def cmd_generate(args) -> int:
         if old.get("migrated") and not args.force:
             run["migrated"] = old["migrated"]      # 全部作り直す --force では、旧実行の「移行した記録」という説明を残さない
     # 済んだ応答を使い回してよいのは、同じ依頼文・同じ系統の中身・同じ生成コマンドで作られ、本文が保存時のままのときだけ
-    run["generations"] = [g for g in run["generations"] if generation_problem(run_dir, run, g) is None]
+    run["generations"] = [g for g in run["generations"] if generation_problem(run_dir, run, g, strict=True) is None]
     done_keys = {(g["prompt"], g["trial"], g["arm"]) for g in run["generations"]}
     jobs = []
     for p in prompts:
@@ -374,7 +377,14 @@ def sha(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def generation_problem(run_dir: Path, run: dict, g: dict):
+def preamble_shas(run: dict) -> dict:
+    """この実行が使った前置きのハッシュ。run.json に記録があればそれを、無ければ（記録する前の実行）いまの定数を使う。"""
+    saved = run.get("preambles") or {}
+    return {"skill": (saved.get("skill") or {}).get("sha") or sha(PREAMBLE_SKILL),
+            "plain": (saved.get("plain") or {}).get("sha") or sha(PREAMBLE_PLAIN)}
+
+
+def generation_problem(run_dir: Path, run: dict, g: dict, strict: bool = False):
     """生成記録が、保存された本文と実行条件に合っているかを見る。合っていれば None、合わなければ理由を返す。
     generate（使い回しの可否）・judge（読ませてよいか）・report（集計してよいか）で同じ検証を使う。"""
     if not g.get("ok"):
@@ -387,8 +397,11 @@ def generation_problem(run_dir: Path, run: dict, g: dict):
         return "依頼文が違う"      # 記録したハッシュどうしでなく、いまの依頼の本文と照合する
     if (g.get("source"), g.get("tree")) != (arm["source"], arm["tree"]) or g.get("generator") != run["generator"]["command"]:
         return "系統の中身か生成コマンドが違う"
-    if "preamble_sha" in g and g["preamble_sha"] != sha(PREAMBLE_SKILL if arm["source"] != "none" else PREAMBLE_PLAIN):
-        return "依頼文の前置きが違う"      # 前置きを記録する前の実行（preamble_sha なし）は、この点を確かめられない
+    if "preamble_sha" not in g:
+        if strict:
+            return "依頼文の前置きの記録が無い"      # generate の再開では使い回さない（違う前置きの応答が混ざるのを防ぐ）
+    elif g["preamble_sha"] != preamble_shas(run)["plain" if arm["source"] == "none" else "skill"]:
+        return "依頼文の前置きが違う"
     path = run_dir / g["path"]
     if not path.is_file() or g.get("response_sha") != sha(path.read_text(encoding="utf-8", errors="replace")):
         return "本文が、記録したときと違う"
@@ -608,6 +621,9 @@ def render_report(run: dict, rows: list, labels: list, audit: dict) -> str:
     for a in run["arms"]:
         what = {"skill": "このリポジトリのスキル", "none": "スキルなし（空のディレクトリ）"}.get(a["source"], f"別の版のスキル（{Path(a['source']).name}）")
         out.append(f"- 系統 `{a['label']}`: {what}" + (f"、写しのハッシュ {a['tree']}" if a["tree"] else ""))
+    unverified = sum(1 for g in run["generations"] if g.get("ok") and "preamble_sha" not in g)
+    if unverified:
+        out.append(f"- 前置きの記録が無い応答 {unverified} 件（前置きを記録する前の実行器で生成。どの前置きで作ったかは、この記録からは確かめられない）")
     out += ["- 判定役に渡したのは、依頼文・2 つの応答・問いだけ（系統の名前、モデル名、版、過去の結果、lint の結果、期待出力は渡していない）",
             "- 作業ディレクトリと依頼本文は分けているが、ファイルの読み取りの隔離は保証していない。他の系統、元のリポジトリ、結果・割り当て・ログ、利用環境の設定へアクセスできる可能性が残る。"
             "由来の情報を依頼文に直接含めない比較であり、厳密な盲検を保証するものではない",

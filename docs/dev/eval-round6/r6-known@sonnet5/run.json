@@ -1,0 +1,184 @@
+{
+  "created": "2026-09-19T13:47:15",
+  "skill_repo": {
+    "commit": "d7409ec",
+    "dirty": true
+  },
+  "generator": {
+    "command": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+    "version": "Python 3.13.15"
+  },
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "graduation-confession",
+      "kind": "confession",
+      "text": "恋愛短編の山場の一場面だけ書いてほしい。高校の卒業式のあと、ずっと隠してきた気持ちを直球で告白する場面。感情はしっかり言葉にして、読んでて胸が熱くなるやつ。1200〜1500字。",
+      "hash": "afba44ea0cb1",
+      "min_chars": 1200,
+      "max_chars": 1500
+    },
+    {
+      "name": "romance-direct-confession",
+      "kind": "confession",
+      "text": "直球の恋愛短編の山場を一場面だけ書いて。駅前で、転勤する相手を主人公が呼び止めて「好きです。付き合ってください」と告白する。ずっと友達だった相手も、ここで自分の気持ちを答えてほしい。「うれしい」「好き」と感情をはっきり言うのが売りの話です。小道具や沈黙だけで察してもらう方向にはしないで。",
+      "hash": "c0b6c036f4d2",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "web-episode-twelve-reminder",
+      "kind": "serial",
+      "text": "毎週更新しているWeb連載の第12話を書いて。前話から1週間空いた読者が思い出せる入り方にしてほしいです。あらすじを長々と並べず、そのまま今回の話を進めてください。\n設定：主人公の真帆は、祖父から継いだ貸衣装店の店主。客の瀬田とは、祭りの衣装の契約を進めている。\n前話：瀬田は契約書を持ち帰り、共同出資者である母に見せると言った。返事は保留のまま。作中では昨日の出来事。\n今回：瀬田が母を連れて来店する。母は衣装の注文数を減らしたい。真帆はすでに生地を取り寄せていて、契約条件を話し合う。\n本文だけお願いします。",
+      "hash": "af41771f1f46",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "generations": [
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "9fcc628d4c65f0ed",
+      "path": "gen/romance-direct-confession/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 13.9,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "d81b0d2bfbc1f57e",
+      "path": "gen/graduation-confession/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "cc162e59fcc6b329",
+      "path": "gen/web-episode-twelve-reminder/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.7,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "943560f4144915c9",
+      "path": "gen/romance-direct-confession/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 128.1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "graduation-confession",
+      "hash": "afba44ea0cb1",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "6d8e86d4689069ab",
+      "path": "gen/graduation-confession/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 332.3,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "54eaed1a33db",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "ce0976cb6a28b1e0",
+      "path": "gen/web-episode-twelve-reminder/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 450.5,
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "judge": {
+    "command": "python -X utf8 evals/gateway.py chat --model anthropic/claude-sonnet-5 --timeout 600",
+    "version": "Python 3.13.15",
+    "seed": 1
+  }
+}
