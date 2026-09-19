@@ -288,6 +288,10 @@ def cmd_generate(args) -> int:
         if [(p["name"], p["hash"]) for p in old["prompts"]] != [(p["name"], p["hash"]) for p in prompts] and not args.force:
             raise EvalError("同じ --run に、依頼の違う実行がある。別のディレクトリを指定する（上書きするなら --force）。")
         run["generations"] = [] if args.force else old.get("generations", [])
+        if "judge" in old and not args.force:
+            run["judge"] = old["judge"]      # 判定の記録は引き継ぐ。個々の判定が有効かどうかは、依頼文・応答・判定のハッシュの照合が決める
+        if old.get("migrated"):
+            run["migrated"] = old["migrated"]
     # 済んだ応答を使い回してよいのは、同じ依頼文・同じ系統の中身・同じ生成コマンドで作られ、本文が保存時のままのときだけ
     run["generations"] = [g for g in run["generations"] if generation_problem(run_dir, run, g) is None]
     done_keys = {(g["prompt"], g["trial"], g["arm"]) for g in run["generations"]}
@@ -347,7 +351,8 @@ def parse_preference(text: str):
             fence, last = m.group(1), (line, True)
             continue
         if line.strip():
-            last = (line, line.startswith(("    ", "\t")))
+            lead = line[:len(line) - len(line.lstrip(" \t"))].expandtabs(4)
+            last = (line, len(lead) >= 4)      # 4 桁以上の字下げはコード（空白とタブの混在も桁数に直して見る）
     if last is None or last[1]:
         return None
     m = PREFERENCE_RE.match(last[0])
@@ -367,8 +372,8 @@ def generation_problem(run_dir: Path, run: dict, g: dict):
     arm = next((a for a in run["arms"] if a["label"] == g["arm"]), None)
     if prompt is None or arm is None:
         return "この実行の依頼・系統ではない"
-    if g.get("hash") != prompt["hash"]:
-        return "依頼文が違う"
+    if not (text_hash(prompt["text"]) == prompt["hash"] == g.get("hash")):
+        return "依頼文が違う"      # 記録したハッシュどうしでなく、いまの依頼の本文と照合する
     if (g.get("source"), g.get("tree")) != (arm["source"], arm["tree"]) or g.get("generator") != run["generator"]["command"]:
         return "系統の中身か生成コマンドが違う"
     path = run_dir / g["path"]
@@ -554,9 +559,9 @@ def audit_logs(run_dir: Path, run: dict, rows: list) -> dict:
     見るべきログは記録から列挙する。ログが無ければ「該当なし」ではなく「確認不能」と報告する。"""
     none_arms = {a["label"] for a in run["arms"] if a["source"] == "none"}
     expected = [(run_dir / g["path"]).with_suffix(".log") for g in run["generations"] if g["arm"] in none_arms]
-    for row in rows:
+    for row in rows:      # 判定のログは、成功した選好からでなく、割り当て（読ませたはずの提示順）から列挙する。失敗した判定のログも点検の対象
         expected += [run_dir / "judge" / row["prompt"] / f"t{row['trial']}" / f"{order}.log"
-                     for order, o in row["orders"].items() if o.get("raw")]
+                     for order, o in row["orders"].items() if o.get("A")]
     found, missing = [], []
     for log in expected:
         if not log.is_file():

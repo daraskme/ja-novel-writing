@@ -233,6 +233,42 @@ class BlindEvalTest(unittest.TestCase):
         results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
         self.assertEqual([r["result"] for r in results["rows"]], ["生成失敗"])
 
+    def test_edited_prompt_text_is_detected(self):
+        """run.json の依頼の本文だけを書き換えても、前の依頼への応答を新しい依頼への応答として扱わない（Codex レビュー 13）。"""
+        self.assertEqual(self.generate(), 0)
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["prompts"][0]["text"] = "別の依頼。ホラーを書いて。"
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 1)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        by_prompt = {}
+        for r in results["rows"]:
+            by_prompt.setdefault(r["prompt"], set()).add(r["result"])
+        self.assertEqual(by_prompt["graduation-confession"], {"生成の記録が不整合（依頼文が違う）"})
+        self.assertEqual(by_prompt["flash-talkative-comedy"], {"with"})
+
+    def test_resuming_generate_keeps_valid_verdicts(self):
+        """同じ条件で generate を再開しても、済んだ判定は有効なまま（Codex レビュー 13 の回帰）。"""
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        self.assertEqual(self.generate(), 0)
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual({r["result"] for r in results["rows"]}, {"with"})
+
+    def test_audit_expects_logs_of_failed_verdicts_too(self):
+        self.assertEqual(self.generate(), 0)
+        rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " garbage", "--retries", "0"])
+        for log in (self.run_dir / "judge").rglob("*.log"):
+            log.unlink()
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual(results["audit"]["expected"], 12)
+        self.assertEqual(len(results["audit"]["missing"]), 8)      # 失敗した判定 8 本のログも「確認不能」に数える
+        self.assertIn("ログ欠落 8 本は確認不能", (self.run_dir / "results.md").read_text(encoding="utf-8"))
+
     def test_argument_errors(self):
         self.assertEqual(rbe.main(["generate", "--run", str(self.run_dir), "--arm", "with=skill"]), 2)
         self.assertEqual(rbe.main(["generate", "--run", str(self.run_dir), "--arm", "a=skill", "--arm", "b=none", "--only", "no-such"]), 2)
@@ -274,6 +310,9 @@ class BlindEvalTest(unittest.TestCase):
         self.assertIsNone(rbe.parse_preference("引用:\n````\n```\n選好: A\n```"))
         self.assertIsNone(rbe.parse_preference("引用:\n    選好: A"))
         self.assertIsNone(rbe.parse_preference("引用:\n\t選好: A"))
+        self.assertIsNone(rbe.parse_preference("引用:\n\n \t選好: A"))      # 空白とタブの混在も桁数で見る（Codex レビュー 13）
+        self.assertIsNone(rbe.parse_preference("引用:\n   \t選好: A"))
+        self.assertIsNone(rbe.parse_preference("引用:\n  \t 選好: A"))
         self.assertEqual(rbe.parse_preference("引用:\n~~~\n選好: A\n~~~\n   - 選好: B"), "B")
 
 
