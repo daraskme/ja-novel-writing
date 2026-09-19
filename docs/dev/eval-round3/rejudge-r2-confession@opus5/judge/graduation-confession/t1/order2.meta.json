@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "exit": 0,
+      "seconds": 111.0,
+      "ok": true
+    }
+  ],
+  "preference": "B",
+  "request_sha": "e9f29cc72ba705bb",
+  "verdict_sha": "70d0064dec7ea45f",
+  "judge": "python -X utf8 evals/gateway.py chat --model anthropic/claude-opus-5 --timeout 600"
+}

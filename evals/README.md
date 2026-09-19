@@ -5,6 +5,7 @@
 | `evals.json` | スキルの動作確認に使う依頼 9 件と、期待する振る舞いの説明（`expected_output`）。人が読むための資料で、生成役にも判定役にも渡さない |
 | `blind_prompts.json` | 由来を伏せた読み比べに使う依頼。番号でなく、名前と本文のハッシュで識別する |
 | `run_blind_eval.py` | 読み比べの実行器。generate → judge → report |
+| `gateway.py` | Vercel AI Gateway 経由で、生成役（Claude Code）と判定役（1 問 1 答）を動かす小道具。鍵は環境変数 `AI_GATEWAY_API_KEY` か `~/.ai-gateway-key`（リポジトリの中の鍵ファイルは読まない） |
 
 ## 読み比べの走らせ方
 
@@ -25,6 +26,9 @@ python -X utf8 evals/run_blind_eval.py report --run ../blind-runs/r1
 - `--arm` は 2 つ。`名前=skill`（このスキル）、`名前=none`（スキルなし）、`名前=ディレクトリ`（別の版のスキル）。文言を 1 つ抜いた写しを作って `new=skill` と `old=その写し` を比べれば、ほかの差分を固定したまま、その文言の有無だけを比べられる。
 - 生成役と判定役は `--generator` と `--judge` で別々に差し替えられる（既定はどちらも `codex exec`）。`{cwd}` は作業ディレクトリ、`{out}` は応答の保存先に置き換わる。`{out}` の無いコマンドは標準出力を応答とみなす。
 - 途中で失敗しても、同じ `--run` でもう一度実行すれば、済んだものを飛ばして続きから走る。失敗と再試行は `run.json` に残る。
+- 生成 1 件ごとに、別の作業ディレクトリを使う（生成役が下書きを置いても、ほかの試行から見えない）。スキルの系統への依頼文の前置きは、スキルのファイルを書き換えないこと、下書きの一時ファイルは作業ディレクトリの中に作ってよいことを告げる。
+- 別の判定役で読み直すときは、実行ディレクトリから `gen/`・`run.json`・`assign.json` を新しいディレクトリへ写し、`--judge` を替えて judge → report する（応答と A/B の割り当てが同じになる）。
+- ゲートウェイ経由の例: `--generator "python -X utf8 <絶対パス>/evals/gateway.py claude-code --model anthropic/claude-sonnet-5"`、`--judge "python -X utf8 <絶対パス>/evals/gateway.py chat --model google/gemini-3.1-pro-preview"`。作業ディレクトリが変わるので、`gateway.py` は絶対パスで渡す。入れ子の Claude Code には、読み取り、python の実行、作業ディレクトリの中でのファイル作成だけを許し、1 回あたりの上限額（既定 2 ドル）を付ける。
 
 ## 比較の条件として守っていること
 

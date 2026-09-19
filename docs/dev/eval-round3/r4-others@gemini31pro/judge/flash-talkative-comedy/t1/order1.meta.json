@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "exit": 0,
+      "seconds": 38.4,
+      "ok": true
+    }
+  ],
+  "preference": "A",
+  "request_sha": "5edf3d3bb822a296",
+  "verdict_sha": "c465732ec5dbbc4e",
+  "judge": "python -X utf8 evals/gateway.py chat --model google/gemini-3.1-pro-preview --timeout 600"
+}

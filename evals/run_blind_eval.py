@@ -59,7 +59,8 @@ PREAMBLE_PLAIN = "次のユーザー依頼に、日本語で応えてくださ�
 PREAMBLE_SKILL = (
     "あなたはコーディングエージェントとして起動されていますが、今回の仕事は日本語小説の執筆支援です。"
     "このディレクトリはエージェントスキルです。最初に SKILL.md を全文読み、その指示（モード判定、読むべき references、scripts による検査）に従って、"
-    "下のユーザー依頼に応えてください。ファイルは書き換えないでください（python -X utf8 scripts/novel_lint.py - のように標準入力で検査するのは可）。"
+    "下のユーザー依頼に応えてください。スキルのファイルは書き換えないでください。下書きを検査するための一時ファイルを、この作業ディレクトリの中に作るのは構いません"
+    "（python -X utf8 scripts/novel_lint.py - のように標準入力で渡してもよい）。"
     "最終メッセージには、ユーザーに返す応答だけを書いてください（作業ログや検査結果の羅列は不要）。\n\n## ユーザー依頼\n"
 )
 
@@ -306,19 +307,29 @@ def cmd_generate(args) -> int:
         p, trial, arm = job
         preamble = PREAMBLE_SKILL if arm["source"] != "none" else PREAMBLE_PLAIN
         out = run_dir / "gen" / p["name"] / f"t{trial}" / f"{arm['label']}.md"
-        result = run_once(args.generator, Path(arm["cwd"]), preamble + p["text"] + "\n", out, args.timeout, args.retries)
+        # 生成 1 件ごとに別の作業ディレクトリを使う。生成役が下書きを置いても、ほかの試行・ほかの依頼から見えない
+        parent = Path(tempfile.mkdtemp(prefix="w"))
+        cwd = parent / Path(arm["cwd"]).name
+        if arm["source"] == "none":
+            cwd.mkdir()
+        else:
+            shutil.copytree(arm["cwd"], cwd)
+        try:
+            result = run_once(args.generator, cwd, preamble + p["text"] + "\n", out, args.timeout, args.retries)
+        finally:
+            shutil.rmtree(parent, ignore_errors=True)
         body = out.read_text(encoding="utf-8", errors="replace") if result["ok"] else ""
         return {"prompt": p["name"], "hash": p["hash"], "trial": trial, "arm": arm["label"], "source": arm["source"], "tree": arm["tree"],
-                "generator": args.generator, "response_sha": sha(body) if result["ok"] else None,
+                "generator": args.generator, "preamble_sha": sha(preamble), "response_sha": sha(body) if result["ok"] else None,
                 "path": out.relative_to(run_dir).as_posix(), **result}
 
     print(f"生成 {len(jobs)} 件（並列 {args.jobs}）")
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        for g in pool.map(work, jobs):
+        for g in (f.result() for f in concurrent.futures.as_completed([pool.submit(work, j) for j in jobs])):      # 終わった順に記録する（途中で止めても、済んだ応答の記録が残る）
             run["generations"] = [x for x in run["generations"] if (x["prompt"], x["trial"], x["arm"]) != (g["prompt"], g["trial"], g["arm"])]
             run["generations"].append(g)
             save_json(run_dir / "run.json", run)
-            print(f"  {'ok ' if g['ok'] else 'NG '} {g['prompt']} t{g['trial']} {g['arm']}（{g['attempts'][-1]['seconds']} 秒、試行 {len(g['attempts'])} 回）")
+            print(f"  {'ok ' if g['ok'] else 'NG '} {g['prompt']} t{g['trial']} {g['arm']}（{g['attempts'][-1]['seconds']} 秒、試行 {len(g['attempts'])} 回）", flush=True)
     save_json(run_dir / "run.json", run)
     for arm in staged:
         shutil.rmtree(arm["stage"], ignore_errors=True)
@@ -376,6 +387,8 @@ def generation_problem(run_dir: Path, run: dict, g: dict):
         return "依頼文が違う"      # 記録したハッシュどうしでなく、いまの依頼の本文と照合する
     if (g.get("source"), g.get("tree")) != (arm["source"], arm["tree"]) or g.get("generator") != run["generator"]["command"]:
         return "系統の中身か生成コマンドが違う"
+    if "preamble_sha" in g and g["preamble_sha"] != sha(PREAMBLE_SKILL if arm["source"] != "none" else PREAMBLE_PLAIN):
+        return "依頼文の前置きが違う"      # 前置きを記録する前の実行（preamble_sha なし）は、この点を確かめられない
     path = run_dir / g["path"]
     if not path.is_file() or g.get("response_sha") != sha(path.read_text(encoding="utf-8", errors="replace")):
         return "本文が、記録したときと違う"
@@ -468,7 +481,7 @@ def cmd_judge(args) -> int:
     print(f"判定 {len(jobs)} 件（並列 {args.jobs}）")
     failed = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        for name, result in pool.map(work, jobs):
+        for name, result in (f.result() for f in concurrent.futures.as_completed([pool.submit(work, j) for j in jobs])):
             failed += not result["ok"]
             print(f"  {'ok ' if result['ok'] else 'NG '} {name}")
     run["judge"] = {"command": args.judge, "version": command_version(args.judge), "seed": args.seed}

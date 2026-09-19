@@ -440,5 +440,23 @@ class Cli(unittest.TestCase):
             self.assertEqual(nl.main([str(ok), "--only", "Z"]), 2)
 
 
+class ShareAdvisory(unittest.TestCase):
+    """C09: 割合・内訳・合計の言及は、数量の近くにあるときだけ位置を知らせる（検算はしない。INFO）。評価ラウンド 5 で「二十枚のうち五枚」を「半分」と書いた例から。"""
+
+    def c09(self, text):
+        return [h for h in lint(text, only="C")[1] if h["rule"] == "C09"]
+
+    def test_share_near_a_quantity_is_pointed_out(self):
+        hits = self.c09("　二十枚のうち、来年に回すのは五枚。半分は来年の担ぎ手の分だという。")
+        self.assertEqual(len(hits), 1)
+        self.assertEqual(hits[0]["severity"], "INFO")
+        self.assertGreaterEqual(len(hits[0]["locations"]), 2)
+        self.assertEqual(len(self.c09("　会費は三千円。合わせて九千円を、残り二人で割った。")), 1)
+
+    def test_idioms_without_a_quantity_are_silent(self):
+        for text in ["　話半分に聞いていた。", "　半分冗談のつもりだった。", "　うちの猫は窓辺にいる。", "　そのうち雨になる。"]:
+            self.assertEqual(self.c09(text), [], text)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,32 @@
+{
+  "flash-talkative-comedy/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  },
+  "romance-direct-confession/t1": {
+    "order1": [
+      "base",
+      "with"
+    ]
+  },
+  "battle-spatial-causality/t1": {
+    "order1": [
+      "base",
+      "with"
+    ]
+  },
+  "children-polite-repetition/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  },
+  "web-episode-twelve-reminder/t1": {
+    "order1": [
+      "with",
+      "base"
+    ]
+  }
+}

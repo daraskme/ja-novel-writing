@@ -1413,6 +1413,15 @@ def check_counting(doc: Doc, rep: Report):
     en = [(line_of(text, m.start()), excerpt(text[m.start():m.end() + 12], 28)) for m in cfg.rx("count_enumeration").finditer(text)]
     if en:
         rep.add("C06", "INFO", "個数の宣言", f"{len(en)} 箇所。実際に挙げた数と合っているか数える", en, "")
+    # C09 割合と内訳。「二十枚のうち五枚」を「半分」と書くような食い違いは機械では確かめきれないので、数量の近くにある割合・内訳の語の位置だけ知らせる
+    quantity = re.compile(rf"{NUM}[ 　]*(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽|軒|通|席|票|杯|点|円|万|日|年|か月|ヶ月|ヵ月|時間|週間|歳|才|キロ|メートル|グラム|パーセント|％)")
+    share = re.compile(rf"半分|半数|半額|(?:枚|個|人|名|着|本|冊|台|件|回|組|匹|頭|羽)のうち|{NUM}分の{NUM}|{NUM}割(?!り)|{NUM}倍|(?:その)?うち(?:の)?[ 　]*{NUM}|残り(?:は|の|が)?[ 　]*{NUM}|合わせて[ 　]*{NUM}|合計[ 　]*{NUM}|計[ 　]*{NUM}")
+    amounts = [m.start() for m in quantity.finditer(text)]
+    shares = [(line_of(text, m.start()), excerpt(text[max(0, m.start() - 14):m.end() + 10], 30)) for m in share.finditer(text)
+              if any(abs(m.start() - q) <= 60 for q in amounts)]
+    if shares:
+        rep.add("C09", "INFO", "割合・内訳・合計の言及", f"{len(shares)} 箇所。全体の数と突き合わせて計算する", shares,
+                "二十枚のうち五枚は四分の一で、半分ではない。分配・交渉・日程の条件は、場面の途中で数が入れ替わっていないかも見る")
     loose = re.compile(rf"({NUM})[ 　]*(?:文字|もじ|字(?![幕体形面引義通余数])|音(?![楽色程階符声量質響速読節感])|拍(?![手車子])|はく(?![しり])|モーラ)(?!目|熟語|詰)")
     mora_seen = {m.start(3) for m in RX_FWD_MORA.finditer(text)} | {m.start(1) for m in RX_REV_MORA.finditer(text)}
     handled = seen_nums | mora_seen
@@ -1621,7 +1630,7 @@ def main(argv=None) -> int:
             print(f"-- FAIL {n['FAIL']} / 強WARN {n['STRONG']} / WARN {n['WARN']} / INFO {n['INFO']}。"
                   "FAIL は、その箇所を読んで誤りと確かめてから直す（機械は文脈を読めない。誤検出なら本文を変えず理由を残す）。"
                   "警報は一件ずつ fix か keep を選ぶ（比率の目標は無い。同義語への置き換えはしない）。"
-                  "C05〜C07 は案内で、検算済みを意味しない")
+                  "C05〜C07・C09 は案内で、検算済みを意味しない")
     return 1 if any_fail else 0
 
 

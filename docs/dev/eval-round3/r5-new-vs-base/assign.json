@@ -1,0 +1,32 @@
+{
+  "graduation-confession/t1": {
+    "order1": [
+      "new",
+      "base"
+    ]
+  },
+  "graduation-confession/t2": {
+    "order1": [
+      "new",
+      "base"
+    ]
+  },
+  "flash-talkative-comedy/t1": {
+    "order1": [
+      "base",
+      "new"
+    ]
+  },
+  "romance-direct-confession/t1": {
+    "order1": [
+      "new",
+      "base"
+    ]
+  },
+  "web-episode-twelve-reminder/t1": {
+    "order1": [
+      "base",
+      "new"
+    ]
+  }
+}

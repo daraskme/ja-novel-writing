@@ -1,0 +1,284 @@
+{
+  "created": "2026-09-19T12:36:04",
+  "skill_repo": {
+    "commit": "5b0ef33",
+    "dirty": true
+  },
+  "generator": {
+    "command": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+    "version": "Python 3.13.15"
+  },
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "flash-talkative-comedy",
+      "kind": "comedy",
+      "text": "よく喋る一人称のコメディ掌編を書いて。自治会の福引きで、くじを引く係が自分の景品だけ決められない話。語り手は脱線したり、自分で自分にツッコんだりする人にして。真顔で淡々と語る感じにはしないで。長さは1500字くらい、本文から始めて。",
+      "hash": "f316938e8a3c",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "romance-direct-confession",
+      "kind": "confession",
+      "text": "直球の恋愛短編の山場を一場面だけ書いて。駅前で、転勤する相手を主人公が呼び止めて「好きです。付き合ってください」と告白する。ずっと友達だった相手も、ここで自分の気持ちを答えてほしい。「うれしい」「好き」と感情をはっきり言うのが売りの話です。小道具や沈黙だけで察してもらう方向にはしないで。",
+      "hash": "c0b6c036f4d2",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "battle-spatial-causality",
+      "kind": "battle",
+      "text": "能力バトルの戦闘場面を書いて。倉庫に閉じ込められた主人公は、触れた金属を床に固定できる。敵は、見えている物を自分の方へ引き寄せられる。能力はこの範囲のままで、主人公が出口まで逃げ切る場面にして。棚と通路と出口がどこにあるか、攻防の途中でも追えるように書いて。",
+      "hash": "a7bd0c203885",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "children-polite-repetition",
+      "kind": "children",
+      "text": "小学校中学年の子に読み聞かせる童話を書いて。なくした長ぐつを、カエルと女の子が探すお話がいいです。「です・ます」で、やさしい言葉を使って。同じ呼びかけがくり返し出てきて、子どもが一緒に言える感じにして。怖すぎない、うれしい結末でお願いします。",
+      "hash": "27eb5aa73192",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "web-episode-twelve-reminder",
+      "kind": "serial",
+      "text": "毎週更新しているWeb連載の第12話を書いて。前話から1週間空いた読者が思い出せる入り方にしてほしいです。あらすじを長々と並べず、そのまま今回の話を進めてください。\n設定：主人公の真帆は、祖父から継いだ貸衣装店の店主。客の瀬田とは、祭りの衣装の契約を進めている。\n前話：瀬田は契約書を持ち帰り、共同出資者である母に見せると言った。返事は保留のまま。作中では昨日の出来事。\n今回：瀬田が母を連れて来店する。母は衣装の注文数を減らしたい。真帆はすでに生地を取り寄せていて、契約条件を話し合う。\n本文だけお願いします。",
+      "hash": "af41771f1f46",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "generations": [
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "1d3483c8ff0cd301",
+      "path": "gen/romance-direct-confession/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 16.7,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "flash-talkative-comedy",
+      "hash": "f316938e8a3c",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "8e617c0e29dc5c7e",
+      "path": "gen/flash-talkative-comedy/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "battle-spatial-causality",
+      "hash": "a7bd0c203885",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "b4216964cf35eda3",
+      "path": "gen/battle-spatial-causality/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 24.3,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "children-polite-repetition",
+      "hash": "27eb5aa73192",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "8263dd5a552e4bc7",
+      "path": "gen/children-polite-repetition/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 20.1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "flash-talkative-comedy",
+      "hash": "f316938e8a3c",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "1b185f2f3735b38d",
+      "path": "gen/flash-talkative-comedy/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 192.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "ec1e89c7867bdd77",
+      "path": "gen/romance-direct-confession/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 213.6,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "1bb7201752296fcb",
+      "path": "gen/web-episode-twelve-reminder/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 25.5,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "children-polite-repetition",
+      "hash": "27eb5aa73192",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "d7da95ae013ec5f1",
+      "path": "gen/children-polite-repetition/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 222.1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "battle-spatial-causality",
+      "hash": "a7bd0c203885",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "b90797cd17332e4e",
+      "path": "gen/battle-spatial-causality/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 425.1,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "with",
+      "source": "skill",
+      "tree": "5f7bacf67452",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1500 --max-budget-usd 2",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "325a1b64ffb385e6",
+      "path": "gen/web-episode-twelve-reminder/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 553.3,
+          "ok": true
+        }
+      ]
+    }
+  ],
+  "judge": {
+    "command": "python -X utf8 evals/gateway.py chat --model google/gemini-3.1-pro-preview --timeout 600",
+    "version": "Python 3.13.15",
+    "seed": 1
+  }
+}

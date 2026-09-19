@@ -1,0 +1,275 @@
+{
+  "created": "2026-09-19T08:28:51",
+  "skill_repo": {
+    "commit": "0561228",
+    "dirty": false
+  },
+  "generator": {
+    "command": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+    "version": "codex-cli 0.155.1"
+  },
+  "arms": [
+    {
+      "label": "with",
+      "source": "skill",
+      "tree": "8dd360996c03"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "flash-talkative-comedy",
+      "kind": "comedy",
+      "text": "よく喋る一人称のコメディ掌編を書いて。自治会の福引きで、くじを引く係が自分の景品だけ決められない話。語り手は脱線したり、自分で自分にツッコんだりする人にして。真顔で淡々と語る感じにはしないで。長さは1500字くらい、本文から始めて。",
+      "hash": "f316938e8a3c",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "romance-direct-confession",
+      "kind": "confession",
+      "text": "直球の恋愛短編の山場を一場面だけ書いて。駅前で、転勤する相手を主人公が呼び止めて「好きです。付き合ってください」と告白する。ずっと友達だった相手も、ここで自分の気持ちを答えてほしい。「うれしい」「好き」と感情をはっきり言うのが売りの話です。小道具や沈黙だけで察してもらう方向にはしないで。",
+      "hash": "c0b6c036f4d2",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "battle-spatial-causality",
+      "kind": "battle",
+      "text": "能力バトルの戦闘場面を書いて。倉庫に閉じ込められた主人公は、触れた金属を床に固定できる。敵は、見えている物を自分の方へ引き寄せられる。能力はこの範囲のままで、主人公が出口まで逃げ切る場面にして。棚と通路と出口がどこにあるか、攻防の途中でも追えるように書いて。",
+      "hash": "a7bd0c203885",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "children-polite-repetition",
+      "kind": "children",
+      "text": "小学校中学年の子に読み聞かせる童話を書いて。なくした長ぐつを、カエルと女の子が探すお話がいいです。「です・ます」で、やさしい言葉を使って。同じ呼びかけがくり返し出てきて、子どもが一緒に言える感じにして。怖すぎない、うれしい結末でお願いします。",
+      "hash": "27eb5aa73192",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "web-episode-twelve-reminder",
+      "kind": "serial",
+      "text": "毎週更新しているWeb連載の第12話を書いて。前話から1週間空いた読者が思い出せる入り方にしてほしいです。あらすじを長々と並べず、そのまま今回の話を進めてください。\n設定：主人公の真帆は、祖父から継いだ貸衣装店の店主。客の瀬田とは、祭りの衣装の契約を進めている。\n前話：瀬田は契約書を持ち帰り、共同出資者である母に見せると言った。返事は保留のまま。作中では昨日の出来事。\n今回：瀬田が母を連れて来店する。母は衣装の注文数を減らしたい。真帆はすでに生地を取り寄せていて、契約条件を話し合う。\n本文だけお願いします。",
+      "hash": "af41771f1f46",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "generations": [
+    {
+      "prompt": "flash-talkative-comedy",
+      "hash": "f316938e8a3c",
+      "trial": 1,
+      "arm": "with",
+      "path": "gen/flash-talkative-comedy/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 169.5,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "92be8309bffc5b81"
+    },
+    {
+      "prompt": "flash-talkative-comedy",
+      "hash": "f316938e8a3c",
+      "trial": 1,
+      "arm": "base",
+      "path": "gen/flash-talkative-comedy/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 43.4,
+          "ok": true
+        }
+      ],
+      "source": "none",
+      "tree": null,
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "e315bd511500b4ec"
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "with",
+      "path": "gen/romance-direct-confession/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 169.5,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "9e3b44dba76b82dd"
+    },
+    {
+      "prompt": "romance-direct-confession",
+      "hash": "c0b6c036f4d2",
+      "trial": 1,
+      "arm": "base",
+      "path": "gen/romance-direct-confession/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.3,
+          "ok": true
+        }
+      ],
+      "source": "none",
+      "tree": null,
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "366f3d3c574e815e"
+    },
+    {
+      "prompt": "battle-spatial-causality",
+      "hash": "a7bd0c203885",
+      "trial": 1,
+      "arm": "with",
+      "path": "gen/battle-spatial-causality/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 233.4,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "ba723869d2c06515"
+    },
+    {
+      "prompt": "battle-spatial-causality",
+      "hash": "a7bd0c203885",
+      "trial": 1,
+      "arm": "base",
+      "path": "gen/battle-spatial-causality/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 60.7,
+          "ok": true
+        }
+      ],
+      "source": "none",
+      "tree": null,
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "b67e7435a79f0352"
+    },
+    {
+      "prompt": "children-polite-repetition",
+      "hash": "27eb5aa73192",
+      "trial": 1,
+      "arm": "with",
+      "path": "gen/children-polite-repetition/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 108.0,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "809eda3e7303f5bf"
+    },
+    {
+      "prompt": "children-polite-repetition",
+      "hash": "27eb5aa73192",
+      "trial": 1,
+      "arm": "base",
+      "path": "gen/children-polite-repetition/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 40.0,
+          "ok": true
+        }
+      ],
+      "source": "none",
+      "tree": null,
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "5fc09d1221732747"
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "with",
+      "path": "gen/web-episode-twelve-reminder/t1/with.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 447.4,
+          "ok": true
+        }
+      ],
+      "source": "skill",
+      "tree": "8dd360996c03",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "b09fc63e527e9151"
+    },
+    {
+      "prompt": "web-episode-twelve-reminder",
+      "hash": "af41771f1f46",
+      "trial": 1,
+      "arm": "base",
+      "path": "gen/web-episode-twelve-reminder/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 77.0,
+          "ok": true
+        }
+      ],
+      "source": "none",
+      "tree": null,
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "response_sha": "316c78d578daf3ee"
+    }
+  ],
+  "migrated": "レビュー 11 の前の実行器で生成。応答のハッシュと判定の成否は、保存済みのログと依頼文から起こした",
+  "judge": {
+    "command": "python -X utf8 evals/gateway.py chat --model google/gemini-3.1-pro-preview --timeout 600",
+    "version": "Python 3.13.15",
+    "seed": 1
+  }
+}

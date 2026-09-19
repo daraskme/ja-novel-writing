@@ -1,0 +1,14 @@
+{
+  "graduation-confession/t1": {
+    "order1": [
+      "ablated",
+      "current"
+    ]
+  },
+  "graduation-confession/t2": {
+    "order1": [
+      "current",
+      "ablated"
+    ]
+  }
+}

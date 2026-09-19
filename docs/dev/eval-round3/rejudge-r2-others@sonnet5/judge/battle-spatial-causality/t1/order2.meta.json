@@ -1,0 +1,15 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "exit": 0,
+      "seconds": 225.5,
+      "ok": true
+    }
+  ],
+  "preference": "B",
+  "request_sha": "f736df91c909786b",
+  "verdict_sha": "261bed986b400a92",
+  "judge": "python -X utf8 evals/gateway.py chat --model anthropic/claude-sonnet-5 --timeout 600"
+}
