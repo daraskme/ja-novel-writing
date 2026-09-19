@@ -1,0 +1,189 @@
+{
+  "created": "2026-09-19T17:36:55",
+  "skill_repo": {
+    "commit": "0b138f6",
+    "dirty": true
+  },
+  "generator": {
+    "command": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+    "version": "Python 3.13.15"
+  },
+  "arms": [
+    {
+      "label": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "office-kitchenette-comedy",
+      "kind": "comedy",
+      "text": "会社の給湯室を舞台にしたショートコメディを書いて。コーヒーメーカーの掃除当番を誰もやらない問題を、新入社員が解決しようとして空回りする話。800〜1000字で、オチをつけて。",
+      "hash": "f6a3f2c02f27",
+      "min_chars": 800,
+      "max_chars": 1000
+    },
+    {
+      "name": "fantasy-inn-dinner",
+      "kind": "flash",
+      "text": "異世界の宿屋の主人が、泊まりに来た勇者一行の夕食を用意する一場面を書いて。戦いの話じゃなくて、料理と会話で読ませる日常回にしてほしい。",
+      "hash": "5bbca1863e63",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "romance-library-closing",
+      "kind": "confession",
+      "text": "大学の図書館で、閉館まぎわに、同じゼミの相手に告白して、相手も同じ気持ちだったと分かる場面を書いて。読み終わったらにやにやしちゃうような、幸せなやつがいい。1200字くらい。",
+      "hash": "e588256c2e52",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "preambles": {
+    "skill": {
+      "sha": "ee9348e32e685513",
+      "text": "あなたはコーディングエージェントとして起動されていますが、今回の仕事は日本語小説の執筆支援です。このディレクトリはエージェントスキルです。最初に SKILL.md を全文読み、その指示（モード判定、読むべき references、scripts による検査）に従って、下のユーザー依頼に応えてください。スキルのファイルは書き換えないでください。下書きを検査するための一時ファイルを、この作業ディレクトリの中に作るのは構いません（python -X utf8 scripts/novel_lint.py - のように標準入力で渡してもよい）。最終メッセージには、ユーザーに返す応答だけを書いてください（作業ログや検査結果の羅列は不要）。\n\n## ユーザー依頼\n"
+    },
+    "plain": {
+      "sha": "41b0ab4a68345db4",
+      "text": "次のユーザー依頼に、日本語で応えてください。最終メッセージには、ユーザーに返す応答だけを書いてください。\n\n## ユーザー依頼\n"
+    }
+  },
+  "generations": [
+    {
+      "prompt": "office-kitchenette-comedy",
+      "hash": "f6a3f2c02f27",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "d4c8224b91c81f06",
+      "path": "gen/office-kitchenette-comedy/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 25.3,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-library-closing",
+      "hash": "e588256c2e52",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "117abd583f3f57e9",
+      "path": "gen/romance-library-closing/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.0,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "fantasy-inn-dinner",
+      "hash": "5bbca1863e63",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "eabbc6a80e16bcbd",
+      "path": "gen/fantasy-inn-dinner/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 27.9,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "office-kitchenette-comedy",
+      "hash": "f6a3f2c02f27",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "9022d973a531cd43",
+      "path": "gen/office-kitchenette-comedy/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 80.5,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-library-closing",
+      "hash": "e588256c2e52",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "f433d3d3942bfe3e",
+      "path": "gen/romance-library-closing/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 111.7,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "fantasy-inn-dinner",
+      "hash": "5bbca1863e63",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "3a7df3c87ffdb48a",
+      "path": "gen/fantasy-inn-dinner/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 144.7,
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

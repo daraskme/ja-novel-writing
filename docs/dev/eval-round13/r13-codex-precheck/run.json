@@ -1,0 +1,239 @@
+{
+  "created": "2026-09-19T17:37:08",
+  "skill_repo": {
+    "commit": "0b138f6",
+    "dirty": true
+  },
+  "generator": {
+    "command": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+    "version": "codex-cli 0.155.1"
+  },
+  "arms": [
+    {
+      "label": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac"
+    },
+    {
+      "label": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf"
+    }
+  ],
+  "comparison": "skill-vs-skill",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "romance-rooftop-mutual",
+      "kind": "confession",
+      "text": "社会人の恋愛短編の山場を書いて。残業明けの会社の屋上で、同期に想いを告げて、相手も同じ気持ちだったと分かる場面。二人とも言葉でちゃんと伝え合って、読んだあと幸せな気分になれるやつがいい。1000〜1300字で。",
+      "hash": "492301c4fab0",
+      "min_chars": 1000,
+      "max_chars": 1300
+    },
+    {
+      "name": "romance-unrequited-farewell",
+      "kind": "confession",
+      "text": "片思いが実らない話を書いて。大学の卒業旅行の最終日、主人公が告白して、相手は誠実に断る。振られても読後感が悪くならない、静かで前向きな場面にしてほしい。1200字前後。",
+      "hash": "b91872a754ab",
+      "min_chars": null,
+      "max_chars": null
+    },
+    {
+      "name": "office-kitchenette-comedy",
+      "kind": "comedy",
+      "text": "会社の給湯室を舞台にしたショートコメディを書いて。コーヒーメーカーの掃除当番を誰もやらない問題を、新入社員が解決しようとして空回りする話。800〜1000字で、オチをつけて。",
+      "hash": "f6a3f2c02f27",
+      "min_chars": 800,
+      "max_chars": 1000
+    },
+    {
+      "name": "fantasy-inn-dinner",
+      "kind": "flash",
+      "text": "異世界の宿屋の主人が、泊まりに来た勇者一行の夕食を用意する一場面を書いて。戦いの話じゃなくて、料理と会話で読ませる日常回にしてほしい。",
+      "hash": "5bbca1863e63",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "preambles": {
+    "skill": {
+      "sha": "ee9348e32e685513",
+      "text": "あなたはコーディングエージェントとして起動されていますが、今回の仕事は日本語小説の執筆支援です。このディレクトリはエージェントスキルです。最初に SKILL.md を全文読み、その指示（モード判定、読むべき references、scripts による検査）に従って、下のユーザー依頼に応えてください。スキルのファイルは書き換えないでください。下書きを検査するための一時ファイルを、この作業ディレクトリの中に作るのは構いません（python -X utf8 scripts/novel_lint.py - のように標準入力で渡してもよい）。最終メッセージには、ユーザーに返す応答だけを書いてください（作業ログや検査結果の羅列は不要）。\n\n## ユーザー依頼\n"
+    },
+    "plain": {
+      "sha": "41b0ab4a68345db4",
+      "text": "次のユーザー依頼に、日本語で応えてください。最終メッセージには、ユーザーに返す応答だけを書いてください。\n\n## ユーザー依頼\n"
+    }
+  },
+  "generations": [
+    {
+      "prompt": "romance-rooftop-mutual",
+      "hash": "492301c4fab0",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "e93c148368498f9d",
+      "path": "gen/romance-rooftop-mutual/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 140.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-unrequited-farewell",
+      "hash": "b91872a754ab",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "d46a843d3ff311c0",
+      "path": "gen/romance-unrequited-farewell/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 145.7,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-rooftop-mutual",
+      "hash": "492301c4fab0",
+      "trial": 1,
+      "arm": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "1b1c9360b96b42c4",
+      "path": "gen/romance-rooftop-mutual/t1/prev2.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 158.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-unrequited-farewell",
+      "hash": "b91872a754ab",
+      "trial": 1,
+      "arm": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "597ff4685c9b6b7e",
+      "path": "gen/romance-unrequited-farewell/t1/prev2.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 192.4,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "office-kitchenette-comedy",
+      "hash": "f6a3f2c02f27",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "4fc5947b294a1cc4",
+      "path": "gen/office-kitchenette-comedy/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 155.2,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "office-kitchenette-comedy",
+      "hash": "f6a3f2c02f27",
+      "trial": 1,
+      "arm": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "d6705530af55ff7f",
+      "path": "gen/office-kitchenette-comedy/t1/prev2.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 155.6,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "fantasy-inn-dinner",
+      "hash": "5bbca1863e63",
+      "trial": 1,
+      "arm": "reduced",
+      "source": "skill",
+      "tree": "cfad8d900dac",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "b198ca44217939b8",
+      "path": "gen/fantasy-inn-dinner/t1/reduced.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 183.6,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "fantasy-inn-dinner",
+      "hash": "5bbca1863e63",
+      "trial": 1,
+      "arm": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf",
+      "generator": "codex exec -s read-only --skip-git-repo-check -c model_reasoning_effort=\"medium\" -C {cwd} -o {out} -",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "8cc9ddb395610081",
+      "path": "gen/fantasy-inn-dinner/t1/prev2.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 160.2,
+          "ok": true
+        }
+      ]
+    }
+  ]
+}

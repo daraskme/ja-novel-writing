@@ -1,0 +1,89 @@
+{
+  "created": "2026-09-19T17:39:20",
+  "skill_repo": {
+    "commit": "0b138f6",
+    "dirty": true
+  },
+  "generator": {
+    "command": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+    "version": "Python 3.13.15"
+  },
+  "arms": [
+    {
+      "label": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "comparison": "skill-vs-none",
+  "trials": 1,
+  "prompts": [
+    {
+      "name": "romance-library-closing",
+      "kind": "confession",
+      "text": "大学の図書館で、閉館まぎわに、同じゼミの相手に告白して、相手も同じ気持ちだったと分かる場面を書いて。読み終わったらにやにやしちゃうような、幸せなやつがいい。1200字くらい。",
+      "hash": "e588256c2e52",
+      "min_chars": null,
+      "max_chars": null
+    }
+  ],
+  "preambles": {
+    "skill": {
+      "sha": "ee9348e32e685513",
+      "text": "あなたはコーディングエージェントとして起動されていますが、今回の仕事は日本語小説の執筆支援です。このディレクトリはエージェントスキルです。最初に SKILL.md を全文読み、その指示（モード判定、読むべき references、scripts による検査）に従って、下のユーザー依頼に応えてください。スキルのファイルは書き換えないでください。下書きを検査するための一時ファイルを、この作業ディレクトリの中に作るのは構いません（python -X utf8 scripts/novel_lint.py - のように標準入力で渡してもよい）。最終メッセージには、ユーザーに返す応答だけを書いてください（作業ログや検査結果の羅列は不要）。\n\n## ユーザー依頼\n"
+    },
+    "plain": {
+      "sha": "41b0ab4a68345db4",
+      "text": "次のユーザー依頼に、日本語で応えてください。最終メッセージには、ユーザーに返す応答だけを書いてください。\n\n## ユーザー依頼\n"
+    }
+  },
+  "generations": [
+    {
+      "prompt": "romance-library-closing",
+      "hash": "e588256c2e52",
+      "trial": 1,
+      "arm": "base",
+      "source": "none",
+      "tree": null,
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "41b0ab4a68345db4",
+      "response_sha": "b9f3d13ade2a784a",
+      "path": "gen/romance-library-closing/t1/base.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 26.8,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "prompt": "romance-library-closing",
+      "hash": "e588256c2e52",
+      "trial": 1,
+      "arm": "prev2",
+      "source": "../blind-runs/prev2-skill",
+      "tree": "ec021bb0b5bf",
+      "generator": "python -X utf8 evals/gateway.py claude-code --model anthropic/claude-sonnet-5 --timeout 1200 --max-budget-usd 1",
+      "preamble_sha": "ee9348e32e685513",
+      "response_sha": "12458de094ba011c",
+      "path": "gen/romance-library-closing/t1/prev2.md",
+      "ok": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit": 0,
+          "seconds": 110.2,
+          "ok": true
+        }
+      ]
+    }
+  ]
+}
