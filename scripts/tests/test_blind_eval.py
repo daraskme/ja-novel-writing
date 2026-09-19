@@ -249,6 +249,30 @@ class BlindEvalTest(unittest.TestCase):
         self.assertEqual(by_prompt["graduation-confession"], {"生成の記録が不整合（依頼文が違う）"})
         self.assertEqual(by_prompt["flash-talkative-comedy"], {"with"})
 
+    def test_audit_keeps_verdict_logs_of_pairs_dropped_from_the_tally(self):
+        """判定のあとで生成の記録が不整合になっても、その対の判定のログは点検の対象のまま（Codex レビュー 14）。"""
+        self.assertEqual(self.generate(), 0)
+        self.assertEqual(rbe.main(["judge", "--run", str(self.run_dir), "--judge", self.judge + " skill"]), 0)
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["prompts"][0]["text"] = "別の依頼。"
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
+        rbe.main(["report", "--run", str(self.run_dir)])
+        results = json.loads((self.run_dir / "results.json").read_text(encoding="utf-8"))
+        self.assertEqual(results["audit"]["expected"], 12)
+        self.assertEqual(results["audit"]["missing"], [])
+
+    def test_force_does_not_inherit_the_migration_note(self):
+        self.assertEqual(self.generate(), 0)
+        run_path = self.run_dir / "run.json"
+        run = json.loads(run_path.read_text(encoding="utf-8"))
+        run["migrated"] = "旧実行器の記録"
+        run_path.write_text(json.dumps(run, ensure_ascii=False), encoding="utf-8")
+        self.assertEqual(self.generate(), 0)
+        self.assertIn("migrated", json.loads(run_path.read_text(encoding="utf-8")))
+        self.assertEqual(self.generate("--force"), 0)
+        self.assertNotIn("migrated", json.loads(run_path.read_text(encoding="utf-8")))
+
     def test_resuming_generate_keeps_valid_verdicts(self):
         """同じ条件で generate を再開しても、済んだ判定は有効なまま（Codex レビュー 13 の回帰）。"""
         self.assertEqual(self.generate(), 0)

@@ -290,8 +290,8 @@ def cmd_generate(args) -> int:
         run["generations"] = [] if args.force else old.get("generations", [])
         if "judge" in old and not args.force:
             run["judge"] = old["judge"]      # 判定の記録は引き継ぐ。個々の判定が有効かどうかは、依頼文・応答・判定のハッシュの照合が決める
-        if old.get("migrated"):
-            run["migrated"] = old["migrated"]
+        if old.get("migrated") and not args.force:
+            run["migrated"] = old["migrated"]      # 全部作り直す --force では、旧実行の「移行した記録」という説明を残さない
     # 済んだ応答を使い回してよいのは、同じ依頼文・同じ系統の中身・同じ生成コマンドで作られ、本文が保存時のままのときだけ
     run["generations"] = [g for g in run["generations"] if generation_problem(run_dir, run, g) is None]
     done_keys = {(g["prompt"], g["trial"], g["arm"]) for g in run["generations"]}
@@ -547,21 +547,22 @@ def cmd_report(args) -> int:
         kind = next(p["kind"] for p in run["prompts"] if p["name"] == row["prompt"])
         row["lint"] = {lab: lint_record((run_dir / gens[(row["prompt"], row["trial"], lab)]["path"]).read_text(encoding="utf-8"), kind)
                        for lab in labels if row["arms"].get(lab)}
-    audit = audit_logs(run_dir, run, rows)
+    audit = audit_logs(run_dir, run, assign)
     save_json(run_dir / "results.json", {"caveat": CAVEAT, "arms": run["arms"], "rows": rows, "audit": audit})
     (run_dir / "results.md").write_text(render_report(run, rows, labels, audit), encoding="utf-8", newline="\n")
     print(f"書き出し: {run_dir / 'results.md'}")
     return 0
 
 
-def audit_logs(run_dir: Path, run: dict, rows: list) -> dict:
+def audit_logs(run_dir: Path, run: dict, assign: dict) -> dict:
     """スキルなしの系統と判定役のログに、読んではいけない場所の名前が出ていないかを見る。依頼文と応答の本文に含まれる語は除けないので、出たら人が読む。
     見るべきログは記録から列挙する。ログが無ければ「該当なし」ではなく「確認不能」と報告する。"""
     none_arms = {a["label"] for a in run["arms"] if a["source"] == "none"}
     expected = [(run_dir / g["path"]).with_suffix(".log") for g in run["generations"] if g["arm"] in none_arms]
-    for row in rows:      # 判定のログは、成功した選好からでなく、割り当て（読ませたはずの提示順）から列挙する。失敗した判定のログも点検の対象
-        expected += [run_dir / "judge" / row["prompt"] / f"t{row['trial']}" / f"{order}.log"
-                     for order, o in row["orders"].items() if o.get("A")]
+    # 判定のログは、集計の成否からでなく、割り当て（読ませたはずの提示順）から列挙する。
+    # 失敗した判定のログも、生成の記録が不整合で集計から外れた対の判定のログも、点検の対象
+    for key in assign:
+        expected += [run_dir / "judge" / key / f"{order}.log" for order in ("order1", "order2")]
     found, missing = [], []
     for log in expected:
         if not log.is_file():
