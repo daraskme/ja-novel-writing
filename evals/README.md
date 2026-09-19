@@ -5,7 +5,7 @@
 | `evals.json` | スキルの動作確認に使う依頼 9 件と、期待する振る舞いの説明（`expected_output`）。人が読むための資料で、生成役にも判定役にも渡さない |
 | `blind_prompts.json` | 由来を伏せた読み比べに使う依頼。番号でなく、名前と本文のハッシュで識別する |
 | `run_blind_eval.py` | 読み比べの実行器。generate → judge → report |
-| `gateway.py` | Vercel AI Gateway 経由で、生成役（Claude Code）と判定役（1 問 1 答）を動かす小道具。鍵は環境変数 `AI_GATEWAY_API_KEY` か `~/.ai-gateway-key`（リポジトリの中の鍵ファイルは読まない） |
+| `gateway.py` | Vercel AI Gateway 経由で、生成役（Claude Code）と判定役（1 問 1 答）を動かす小道具。`chat --search perplexity` で、ゲートウェイの検索つきの調査にも使える。鍵は環境変数 `AI_GATEWAY_API_KEY` か `~/.ai-gateway-key`（リポジトリの中の鍵ファイルは読まない） |
 
 ## 読み比べの走らせ方
 

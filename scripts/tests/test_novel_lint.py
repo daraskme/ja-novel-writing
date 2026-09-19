@@ -500,7 +500,8 @@ class RangeAndNextStep(unittest.TestCase):
         self.assertIn("確認のかけ直しは、してよい", out)
         code, out = self.run_cli(text, "--length", "flash", "--range", "1200-1500", "--min-chars", "0")
         self.assertIn("不足 ", out)
-        self.assertIn("まとめて書き足す", out)
+        self.assertIn("lint は数を報告するだけ", out)      # 過不足への対処を lint が命じない（Codex 相談 2）
+        self.assertNotIn("書き足", out)
         self.assertNotIn("かけ直す必要は無い", out)      # 字数を直すなら、測り直しが要る。矛盾した案内を並べない（Codex レビュー 15）
         self.assertNotIn("1.3 倍", out)
         code, out = self.run_cli(text, "--length", "flash", "--range", "10", "--min-chars", "0")
@@ -527,6 +528,14 @@ class RangeAndNextStep(unittest.TestCase):
         out = buf.getvalue()
         self.assertNotIn("超過", out)
         self.assertEqual(out.count("字数は指定の範囲内"), 2)
+
+    def test_emotion_naming_can_be_passed_without_a_project(self):
+        """掌編でも、感情を直球で言う契約を検査へ伝えられる（頭の中で direct を選んでも、検査に伝わらなかった。Codex 相談 2）。"""
+        text = ("　うれしかった。悔しかった。悲しかった。寂しかった。腹が立った。" * 40) + NLCHR
+        _, plain = self.run_cli(text, "--length", "short", "--only", "K")
+        _, direct = self.run_cli(text, "--length", "short", "--only", "K", "--emotion-naming", "direct")
+        self.assertIn("K08", plain)
+        self.assertNotIn("K08", direct)
 
     def test_long_form_without_range_has_no_next_step(self):
         code, out = self.run_cli("　彼は駅まで歩いた。\n", "--length", "long", "--min-chars", "0")

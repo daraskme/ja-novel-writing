@@ -1,0 +1,38 @@
+{
+  "romance-rooftop-mutual/t1": {
+    "order1": [
+      "prev",
+      "new"
+    ]
+  },
+  "romance-festival-childhood-friend/t1": {
+    "order1": [
+      "prev",
+      "new"
+    ]
+  },
+  "romance-restrained-reunion/t1": {
+    "order1": [
+      "prev",
+      "new"
+    ]
+  },
+  "romance-unrequited-farewell/t1": {
+    "order1": [
+      "new",
+      "prev"
+    ]
+  },
+  "office-kitchenette-comedy/t1": {
+    "order1": [
+      "new",
+      "prev"
+    ]
+  },
+  "fantasy-inn-dinner/t1": {
+    "order1": [
+      "new",
+      "prev"
+    ]
+  }
+}

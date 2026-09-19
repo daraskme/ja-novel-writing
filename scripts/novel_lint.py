@@ -1567,13 +1567,10 @@ def next_step(results: list, cfg: Config, bounds) -> str:
         status = range_status(r["stats"]["chars"], bounds)
         if status == "範囲内":
             parts.append(f"{name}字数は指定の範囲内。これ以上は合わせにいかない")
-        elif status.startswith("不足"):
-            length_off = True
-            parts.append(f"{name}字数が{status}。欠けているやり取りか出来事があるかを先に考え、あれば不足分を一度にまとめて書き足す（上限 {bounds[1]} 字）。"
-                         "数十字ずつ継ぎ足しては測り直す、を繰り返さない。書き足したあとに 1 度測り直す")
         else:
             length_off = True
-            parts.append(f"{name}字数が{status}。核に触れない段落から削り、そのあとに 1 度測り直す")
+            parts.append(f"{name}字数は指定の外（{status}）。lint は数を報告するだけで、どう扱うかは指定の種類で決まる"
+                         "（目安ならこのまま出してよい。守る条件なら、継ぎ足しの周回はせず、構成から 1 回書き直す。references/short-pipeline.md 3 節）")
     if fails:
         parts.append("FAIL の箇所を読んで誤りと確かめたものを直す。直したら 1 度かけ直して確かめる")
     elif cfg.length in ("flash", "short") and not length_off:
@@ -1626,6 +1623,8 @@ def main(argv=None) -> int:
     ap.add_argument("--skip", default="", help="外すルール群の頭文字（例: KO）")
     ap.add_argument("--max-locs", type=int, default=4, help="1 ルールあたりの表示箇所数（既定 4）")
     ap.add_argument("--min-chars", type=int, help="これ未満なら「極端に短い」と警告（既定 100）")
+    ap.add_argument("--emotion-naming", choices=["restrained", "balanced", "direct"],
+                    help="感情の名指しの契約。プロジェクト（novel.toml）が無い掌編でも渡せる。direct なら、感情の名指しの密度（K08）を警報にしない")
     ap.add_argument("--range", dest="char_range", help="依頼された字数。1200-1500 か、約 N 字なら 1500（±1 割。目安なので、下限だけは 3% まで割っても範囲内とする）。ファイルごとに、1 行目の字数（count_chars.py の body と同じ数え方）と比べて知らせる")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
@@ -1647,6 +1646,8 @@ def main(argv=None) -> int:
             print(f"エラー: --project {project} はディレクトリではない", file=sys.stderr)
             return 2
         cfg = Config(args.profile, args.length, project)
+        if args.emotion_naming:
+            cfg.emotion_naming = args.emotion_naming
         cfg.finalize()
     except Exception as exc:  # 設定の読み込み失敗は実行エラー
         print(f"エラー: 設定を読めない: {exc}", file=sys.stderr)

@@ -123,6 +123,9 @@ def cmd_chat(args) -> int:
         payload["max_tokens"] = args.max_tokens
     if args.temperature is not None:
         payload["temperature"] = args.temperature
+    if args.search:      # ゲートウェイの側で検索を実行し、結果をモデルの文脈に足してから答えさせる（どのモデルでも使える）
+        payload["tools"] = [{"type": f"vercel:{args.search}_search"}]
+        payload["tool_choice"] = "required" if args.search_required else "auto"
     started = time.time()
     try:
         res = request_json(f"{BASE_URL}/v1/chat/completions", key, payload, timeout=args.timeout)
@@ -133,8 +136,11 @@ def cmd_chat(args) -> int:
         say(f"エラー: {args.model} の呼び出しに失敗した: {redact(e)[:400]}\n", sys.stderr)
         log_usage(args.usage_log, {"kind": "chat", "model": args.model, "ok": False, "error": redact(e)[:200]})
         return 1
+    meta = ((res["choices"][0]["message"].get("provider_metadata") or {}).get("gateway") or {}) if args.search else {}
     log_usage(args.usage_log, {"kind": "chat", "model": args.model, "ok": True, "seconds": round(time.time() - started, 1),
-                               "usage": res.get("usage"), "response_model": res.get("model")})
+                               "usage": res.get("usage"), "response_model": res.get("model"), "search": meta.get("gatewayToolCalls")})
+    if args.search:
+        say(f"[search] {json.dumps(meta.get('gatewayToolCalls'), ensure_ascii=False)}" + chr(10), sys.stderr)
     say(text if text.endswith("\n") else text + "\n")
     return 0
 
@@ -264,6 +270,8 @@ def build_parser() -> argparse.ArgumentParser:
     chat.add_argument("--model", required=True, help="ゲートウェイのモデル名（例: google/gemini-3.1-pro-preview）")
     chat.add_argument("--max-tokens", type=int, default=0)
     chat.add_argument("--temperature", type=float, default=None)
+    chat.add_argument("--search", choices=["perplexity", "exa", "parallel", "tako"], help="ゲートウェイのウェブ検索を使わせる（1,000 回あたり数ドルの別料金）")
+    chat.add_argument("--search-required", action="store_true", help="答える前に必ず 1 回は検索させる")
     cc = sub.add_parser("claude-code", help="Claude Code（claude -p）をゲートウェイ経由で、いまの作業ディレクトリで動かす")
     cc.add_argument("--model", required=True, help="例: anthropic/claude-sonnet-5")
     cc.add_argument("--tools", default=DEFAULT_TOOLS, help=f"使わせる道具（既定 {DEFAULT_TOOLS}）")

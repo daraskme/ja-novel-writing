@@ -1,0 +1,447 @@
+{
+  "caveat": "本評価は、限定した依頼・モデル・設定による少数試行の探索的比較です。選好は掲載した作品対に対する判定であり、一般的な勝率や品質向上を示しません。生成・判定モデルの偏り、提示順序、長さの影響が残ります。過去の評価を参考に修正した既知の課題を含むため、独立した未知の課題での検証ではありません。lint は確認候補を示すもので、文学的品質や誤りの確定を表しません。",
+  "arms": [
+    {
+      "label": "new",
+      "source": "skill",
+      "tree": "6df8c5228741"
+    },
+    {
+      "label": "base",
+      "source": "none",
+      "tree": null
+    }
+  ],
+  "rows": [
+    {
+      "prompt": "romance-rooftop-mutual",
+      "hash": "492301c4fab0",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 1086,
+          "length": "範囲内"
+        },
+        "base": {
+          "chars": 1260,
+          "length": "範囲内"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "new",
+          "raw": "B",
+          "preferred": "new"
+        },
+        "order2": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        }
+      },
+      "result": "new",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 7,
+            "rules": [
+              "C07",
+              "K00",
+              "L01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 2,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 2,
+            "locations": 10,
+            "rules": [
+              "K00",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "romance-festival-childhood-friend",
+      "hash": "d9379a240ab8",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 1267,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 855,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "new",
+          "raw": "A",
+          "preferred": "base"
+        },
+        "order2": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 7,
+            "rules": [
+              "C07",
+              "D03",
+              "K00",
+              "O02"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 2,
+            "locations": 9,
+            "rules": [
+              "D02",
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 4,
+            "rules": [
+              "D03",
+              "K00",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "romance-restrained-reunion",
+      "hash": "350120861171",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 943,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 510,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "base",
+          "B": "new",
+          "raw": "B",
+          "preferred": "new"
+        },
+        "order2": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        }
+      },
+      "result": "new",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 5,
+            "rules": [
+              "C07",
+              "K00",
+              "L01",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 2,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 4,
+            "rules": [
+              "K00",
+              "L01",
+              "L02",
+              "N05"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "romance-unrequited-farewell",
+      "hash": "b91872a754ab",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 1201,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1225,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        },
+        "order2": {
+          "A": "base",
+          "B": "new",
+          "raw": "B",
+          "preferred": "new"
+        }
+      },
+      "result": "new",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 8,
+            "rules": [
+              "C07",
+              "K00",
+              "L01",
+              "R01",
+              "T01"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 2,
+            "locations": 2,
+            "rules": [
+              "N06",
+              "R03"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 4,
+            "locations": 13,
+            "rules": [
+              "K00",
+              "L01",
+              "N05",
+              "R01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "office-kitchenette-comedy",
+      "hash": "f6a3f2c02f27",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 947,
+          "length": "範囲内"
+        },
+        "base": {
+          "chars": 987,
+          "length": "範囲内"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        },
+        "order2": {
+          "A": "base",
+          "B": "new",
+          "raw": "A",
+          "preferred": "base"
+        }
+      },
+      "result": "順序不安定",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 7,
+            "rules": [
+              "C07",
+              "K00",
+              "R01"
+            ]
+          }
+        },
+        "base": {
+          "STRONG": {
+            "diagnostics": 1,
+            "locations": 0,
+            "rules": [
+              "R02"
+            ]
+          },
+          "WARN": {
+            "diagnostics": 2,
+            "locations": 2,
+            "rules": [
+              "R01",
+              "R03"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 7,
+            "rules": [
+              "K00",
+              "N05",
+              "R01"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "prompt": "fantasy-inn-dinner",
+      "hash": "5bbca1863e63",
+      "trial": 1,
+      "arms": {
+        "new": {
+          "chars": 1067,
+          "length": "指定なし"
+        },
+        "base": {
+          "chars": 1062,
+          "length": "指定なし"
+        }
+      },
+      "orders": {
+        "order1": {
+          "A": "new",
+          "B": "base",
+          "raw": "A",
+          "preferred": "new"
+        },
+        "order2": {
+          "A": "base",
+          "B": "new",
+          "raw": "B",
+          "preferred": "new"
+        }
+      },
+      "result": "new",
+      "lint": {
+        "new": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "M02"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 5,
+            "locations": 7,
+            "rules": [
+              "C07",
+              "C09",
+              "K00",
+              "L01",
+              "O02"
+            ]
+          }
+        },
+        "base": {
+          "WARN": {
+            "diagnostics": 1,
+            "locations": 1,
+            "rules": [
+              "N06"
+            ]
+          },
+          "INFO": {
+            "diagnostics": 3,
+            "locations": 4,
+            "rules": [
+              "K00",
+              "N05",
+              "R01"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "audit": {
+    "expected": 18,
+    "missing": [],
+    "found": []
+  }
+}
