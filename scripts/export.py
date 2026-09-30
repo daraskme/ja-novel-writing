@@ -603,6 +603,8 @@ def expand_inputs(paths: list) -> list:
     result = []
     for raw in paths:
         p = Path(raw)
+        if not p.exists() and "\\" in raw and Path(raw.replace("\\", "/")).exists():
+            p = Path(raw.replace("\\", "/"))      # Windows 流の区切りで渡されたパス（WSL・Linux）
         if p.is_dir():
             found = sorted(c for c in p.iterdir() if c.is_file() and c.suffix.lower() in (".md", ".txt"))
             if not found:
