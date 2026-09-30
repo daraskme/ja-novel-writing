@@ -1042,7 +1042,7 @@ def repeated_in_window(lines, rx, limit: int, window):
     return out
 
 
-EMOJI = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF\u2B50\u2B55]\uFE0F?")
+EMOJI = re.compile("[\U0001F000-\U0001FAFF]\uFE0F?|[\u2600-\u27BF\u2B50\u2B55]\uFE0F")      # ♪☆★ など絵文字化していない記号は数えない
 
 
 def chiasmus_stem(part: str) -> str:

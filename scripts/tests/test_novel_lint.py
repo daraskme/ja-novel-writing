@@ -142,7 +142,7 @@ class Notation(unittest.TestCase):
         n12 = [h for h in hits if h["rule"] == "N12"]
         self.assertEqual(len(n11[0]["locations"]), 2)
         self.assertEqual([l["line"] for l in n12[0]["locations"]], [1])
-        _, hits = lint("　スマホでLINEを開いた。2024年の春だった。", only="N")
+        _, hits = lint("　スマホでLINEを開いた。2024年の春だった。\n「ありがと♪　また明日☆」", only="N")
         self.assertFalse({"N11", "N12"} & set(rules(hits)))
 
     def test_markdown(self):
