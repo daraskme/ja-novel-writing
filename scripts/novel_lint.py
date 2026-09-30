@@ -652,7 +652,7 @@ def check_markdown(doc: Doc, rep: Report):
 
 def check_notation(doc: Doc, rep: Report):
     cfg = rep.cfg
-    n01, n02, n03, n04, n06 = [], [], [], [], []
+    n01, n02, n03, n04, n06, n11, n12 = [], [], [], [], [], [], []
     soft = []      # 台詞と分類できない引用の中や、作中文書らしい行の表記違反。題名や文字列そのものかもしれないので WARN
     doc_lines = document_lines(doc)
     prev_text, carried_cue = "", False
@@ -698,6 +698,11 @@ def check_notation(doc: Doc, rep: Report):
             (n04 if role == "speech" and not in_document else soft).append((ln, excerpt(s[max(0, m.start() - 10):m.end()])))
         for m in re.finditer(r"(?<=[ぁ-んァ-ヶ一-龥])[!?,](?![\w/])|(?<=[ぁ-んァ-ヶ一-龥])\((?=[ぁ-んァ-ヶ一-龥])|[｡､｢｣]", s):
             n06.append((ln, excerpt(s[max(0, m.start() - 8):m.end() + 4])))
+        for m in re.finditer(r"(?<=[ぁ-んァ-ヶ一-龥々])[ \t]+(?=[A-Za-z0-9])|(?<=[A-Za-z0-9])[ \t]+(?=[ぁ-んァ-ヶ一-龥々])", s):
+            n11.append((ln, excerpt(s[max(0, m.start() - 6):m.end() + 6])))
+        if not in_document:
+            for m in EMOJI.finditer(s):
+                n12.append((ln, excerpt(s[max(0, m.start() - 8):m.end() + 2])))
     if n01:
         rep.add("N01", "FAIL", "三点リーダーの形", f"{len(n01)} 箇所。「…」は 2 個 1 組（……）。「・・・」「...」は使わない", n01,
                 "…… に直す。頻度が気になるなら K02 を見る")
@@ -711,6 +716,12 @@ def check_notation(doc: Doc, rep: Report):
         rep.add("N04", "FAIL", "閉じ括弧の直前の句点", f"{len(n04)} 箇所。台詞の終わりの「。」は書かない", n04, "「。」を削る")
     if n06:
         rep.add("N06", "WARN", "半角の記号", f"{len(n06)} 箇所。和文の中の ! ? , ( や半角カナ約物", n06, "全角に直す")
+    if n11:
+        rep.add("N11", "WARN", "和文と英数字のあいだの半角空白", f"{len(n11)} 箇所。和文の中では英単語・数字の前後を空けない", n11,
+                "空白を詰める。作品の表記方針として空けるなら style/lint.json で N11 を off にする")
+    if n12:
+        rep.add("N12", "WARN", "地の文・台詞の絵文字", f"{len(n12)} 箇所。作中のチャットやメッセージは行頭の ＞ で文書として区切れば対象外", n12,
+                "感情は絵文字でなく動作や台詞で書く。作中の文面なら ＞ を付ける")
     if soft:
         rep.add("N09", "WARN", "引用の中の表記（要確認）", f"{len(soft)} 箇所。台詞と分類できない引用・台詞の中の引用にある表記",
                 soft, "題名・固有名・入力文字列そのものなら、そのまま残す。台詞なら N01〜N04 の規則で直す")
@@ -1031,6 +1042,30 @@ def repeated_in_window(lines, rx, limit: int, window):
     return out
 
 
+EMOJI = re.compile("[\U0001F300-\U0001FAFF\u2600-\u27BF\u2B50\u2B55]\uFE0F?")
+
+
+def chiasmus_stem(part: str) -> str:
+    part = part.strip("　 ")
+    m = re.match(r"[一-龥々]+", part)
+    return m.group(0)[:2] if m else part[:2]
+
+
+def chiasmus_pairs(sents, max_len=30):
+    """「読んで身に付けてから、効く。効いてから、身に付く。」のように、短い二文が前後を入れ替えて繰り返す箇所。"""
+    out = []
+    for (ln, a), (_, b) in zip(sents, sents[1:]):
+        if len(a) > max_len or len(b) > max_len or a.count("、") != 1 or b.count("、") != 1:
+            continue
+        a1, a2 = a.rstrip("。").split("、")
+        b1, b2 = b.rstrip("。").split("、")
+        if min(len(a1), len(a2), len(b1), len(b2)) < 1:
+            continue
+        if b1.startswith(chiasmus_stem(a2)) and chiasmus_stem(b2) in a1 and chiasmus_stem(a1) != chiasmus_stem(a2):
+            out.append((ln, excerpt(a + b, 24)))
+    return out
+
+
 def check_density(doc: Doc, rep: Report):
     cfg, g = rep.cfg, rep.cfg.guards
     narr, everything = doc.narr_lines(), doc.all_lines()
@@ -1113,6 +1148,11 @@ def check_density(doc: Doc, rep: Report):
         many = [(ln, f"{excerpt(t, 16)}（読点 {t.count('、')}）") for ln, t in sents if t.count("、") >= lv["info"]]
         if many:
             rep.add("K17", "INFO", cfg.rule("K17")["name"], f"{len(many)} 文", many, cfg.rule("K17")["hint"])
+    lv = cfg.levels("K30")
+    if not lv.get("off") and lv.get("info"):
+        pairs = chiasmus_pairs(sents)
+        if len(pairs) >= lv["info"]:
+            rep.add("K30", "INFO", cfg.rule("K30")["name"], f"{len(pairs)} 組", pairs, cfg.rule("K30")["hint"])
 
 
 # ---------------------------------------------------------------------------
@@ -1625,7 +1665,7 @@ def main(argv=None) -> int:
     ap.add_argument("--min-chars", type=int, help="これ未満なら「極端に短い」と警告（既定 100）")
     ap.add_argument("--emotion-naming", choices=["restrained", "balanced", "direct"],
                     help="感情の名指しの契約。プロジェクト（novel.toml）が無い掌編でも渡せる。direct なら、感情の名指しの密度（K08）を警報にしない")
-    ap.add_argument("--range", dest="char_range", help="依頼された字数。1200-1500 か、約 N 字なら 1500（±1 割。目安なので、下限だけは 3% まで割っても範囲内とする）。ファイルごとに、1 行目の字数（count_chars.py の body と同じ数え方）と比べて知らせる")
+    ap.add_argument("--range", dest="char_range", help="依頼された字数。1200-1500 か、約 N 字なら 1500（±1 割。目安なので、下限だけは 3%% まで割っても範囲内とする）。ファイルごとに、1 行目の字数（count_chars.py の body と同じ数え方）と比べて知らせる")
     args = ap.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         try:

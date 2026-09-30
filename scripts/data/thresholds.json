@@ -681,6 +681,62 @@
           "warn": 9
         }
       }
+    },
+    "K27": {
+      "name": "抽象の質感語・比喩動詞（言葉の温度・記憶の輪郭・時間を溶かす型）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "pseudo_texture",
+      "min_count": 2,
+      "calibrated": "none",
+      "hint": "何の温度・輪郭なのかを、視点人物が見聞きした物と動作で書く。作中で文字どおりの温度・画面の解像度なら keep",
+      "profiles": {
+        "default": {
+          "info": 0.5,
+          "warn": 1.0
+        }
+      }
+    },
+    "K28": {
+      "name": "体験を壮大にする熟語（真理・宿命・深淵型）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "grand_kango",
+      "min_count": 2,
+      "calibrated": "none",
+      "hint": "小さな出来事に大きな語を被せていないか。起きたことの大きさに合う語へ戻す。宗教・哲学を扱う人物の語彙なら keep",
+      "profiles": {
+        "default": {
+          "info": 0.5,
+          "warn": 1.0
+        }
+      }
+    },
+    "K29": {
+      "name": "文頭の目的語に打つ読点（手紙を、型）",
+      "kind": "density",
+      "unit": "narr",
+      "lexicon": "emphatic_object_comma",
+      "min_count": 3,
+      "calibrated": "none",
+      "hint": "強調のための読点になっていないか。読点を外して語順で読めるなら外す。倒置の効果を狙った一度なら keep",
+      "profiles": {
+        "default": {
+          "info": 1.0,
+          "warn": 2.0
+        }
+      }
+    },
+    "K30": {
+      "name": "短い交差反復（AしてからB。BしてからA。型）",
+      "kind": "list",
+      "calibrated": "none",
+      "hint": "対句で言い切ると、何をどうしたかが抜けやすい。二文が言いたい一つの事実を書く。人物の口上・標語として意図したなら keep",
+      "profiles": {
+        "default": {
+          "info": 1
+        }
+      }
     }
   }
 }

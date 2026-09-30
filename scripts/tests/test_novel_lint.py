@@ -136,6 +136,15 @@ class Notation(unittest.TestCase):
         _, hits = lint(text, profile="web", only="N")
         self.assertEqual(rules(hits, "FAIL"), [])
 
+    def test_ascii_spacing_and_emoji(self):
+        _, hits = lint("　スマホで LINE を開いた😊\n＞既読になった😊", only="N")
+        n11 = [h for h in hits if h["rule"] == "N11"]
+        n12 = [h for h in hits if h["rule"] == "N12"]
+        self.assertEqual(len(n11[0]["locations"]), 2)
+        self.assertEqual([l["line"] for l in n12[0]["locations"]], [1])
+        _, hits = lint("　スマホでLINEを開いた。2024年の春だった。", only="N")
+        self.assertFalse({"N11", "N12"} & set(rules(hits)))
+
     def test_markdown(self):
         _, hits = lint("　彼は**強く**言った。\n- 箇条書き", only="N")
         self.assertIn("N07", rules(hits))
@@ -174,6 +183,22 @@ class DensityAndMeta(unittest.TestCase):
         _, hits = lint(self.AI)
         blob = json.dumps(hits, ensure_ascii=False)
         self.assertNotRegex(blob, r"総合|スコア|点数")
+
+    def test_texture_grand_and_chiasmus(self):
+        body = ("　言葉の温度を確かめるように、彼は手紙を読んだ。記憶の輪郭がぼやけていく。\n"
+                "　それは真理だった。宿命のような深淵を覗いた。\n"
+                "　読んで身に付けてから、効く。効いてから、身に付く。\n")
+        filler = "　佐伯は駅前の角で煙草を一本だけ吸って、灰を側溝に落とした。改札の上の時計は七分遅れていた。\n" * 12
+        _, hits = lint(body + filler)
+        got = rules(hits)
+        for r in ("K27", "K28", "K30"):
+            self.assertIn(r, got)
+        _, hits = lint(filler)
+        self.assertFalse({"K27", "K28", "K30"} & set(rules(hits)))
+
+    def test_chiasmus_needs_swapped_halves(self):
+        self.assertEqual(nl.chiasmus_pairs([(1, "雨が止んでから、店を出た。"), (2, "店を出てから、駅へ歩いた。")]), [])
+        self.assertEqual(len(nl.chiasmus_pairs([(1, "読んで身に付けてから、効く。"), (2, "効いてから、身に付く。")])), 1)
 
     def test_short_text_reports_counts_only(self):
         _, hits = lint("　ふと空を見た。まるで嘘のようだった。")
