@@ -13,8 +13,8 @@
 | [novel2hermes_jp](https://github.com/kgmkm/novel2hermes_jp) | kgmkm | MIT | 執筆前後の三段検証、人物の知識状態、世界制約リスト、感情強度の設計、レビュー指摘の必須要件 |
 | [novel2agent-jp](https://github.com/kgmkm/novel2agent-jp) | kgmkm | MIT | proposed / confirmed の二段階確定、決定論的なコンテキストパック、却下案の記録、保存事故の検出 |
 | [awesome-novel-agent](https://github.com/modoojunko/awesome-novel-agent) | modoojunko | GPL-3.0 | 場面種別の技法カードと絞り込み、AI 臭の層別整理と境界事例、短編の執筆契約、盲検読者、人物の層設計 |
-| [AI臭い文章とは何なのか](https://speakerdeck.com/nasuvitz/ai-kusai-bunshou-toha-nanina-no-ka)（2026-09-28） | Kiminori Yokoi（nasuvitz） | 公開ページに教育用途の案内あり。再配布ライセンスの明示は確認できず（2026-10-01） | 本文から意味を読み取れるかの確認と、曖昧な批評を具体的な指摘へ直す観点。小説への適用手順と省略を残す境界は本スキルで設計 |
-| [yomiyasu](https://github.com/nanaism/yomiyasu/tree/30ee6041c328ce21d38a7963f667e079a93d7a12) | nanaism | MIT | 構文を直す際の意味保持、根拠のない情報の追加防止、文脈に合う用語を残す判断。小説向けの照合例は本スキルで書き下ろし |
+| [AI臭い文章とは何なのか](https://speakerdeck.com/nasuvitz/ai-kusai-bunshou-toha-nanina-no-ka)（2026-09-28） | Kiminori Yokoi（nasuvitz） | 公開ページに教育用途の案内あり。再配布ライセンスの明示は確認できず（2026-10-01） | 本文から意味を読み取れるかの確認と、曖昧な批評を具体的な指摘へ直す観点。強調の読点（K29）と短い対句（K30）への着目。小説への適用手順と省略を残す境界は本スキルで設計 |
+| [yomiyasu](https://github.com/nanaism/yomiyasu/tree/30ee6041c328ce21d38a7963f667e079a93d7a12) | nanaism | MIT | 構文を直す際の意味保持、根拠のない情報の追加防止、文脈に合う用語を残す判断、抽象の質感語・比喩動詞・和欧文間の空白・絵文字を拾う観点。小説向けの語彙（K27・K28）と照合例は本スキルで書き下ろし |
 
 各作者に感謝する。
 
