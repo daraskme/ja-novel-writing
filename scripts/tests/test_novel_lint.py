@@ -137,11 +137,11 @@ class Notation(unittest.TestCase):
         self.assertEqual(rules(hits, "FAIL"), [])
 
     def test_ascii_spacing_and_emoji(self):
-        _, hits = lint("　スマホで LINE を開いた😊\n＞既読になった😊", only="N")
+        _, hits = lint("　スマホで LINE を開いた😊\n＞既読になった😊\n　旗は🇯🇵、番号は1️⃣だった。", only="N")
         n11 = [h for h in hits if h["rule"] == "N11"]
         n12 = [h for h in hits if h["rule"] == "N12"]
         self.assertEqual(len(n11[0]["locations"]), 2)
-        self.assertEqual([l["line"] for l in n12[0]["locations"]], [1])
+        self.assertEqual([l["line"] for l in n12[0]["locations"]], [1, 3, 3])
         _, hits = lint("　スマホでLINEを開いた。2024年の春だった。\n「ありがと♪　また明日☆」", only="N")
         self.assertFalse({"N11", "N12"} & set(rules(hits)))
 
@@ -199,6 +199,12 @@ class DensityAndMeta(unittest.TestCase):
     def test_chiasmus_needs_swapped_halves(self):
         self.assertEqual(nl.chiasmus_pairs([(1, "雨が止んでから、店を出た。"), (2, "店を出てから、駅へ歩いた。")]), [])
         self.assertEqual(len(nl.chiasmus_pairs([(1, "読んで身に付けてから、効く。"), (2, "効いてから、身に付く。")])), 1)
+
+    def test_chiasmus_in_short_text_and_not_across_dialogue(self):
+        _, hits = lint("　読んで身に付けてから、効く。効いてから、身に付く。", length="flash")
+        self.assertIn("K30", rules(hits))
+        _, hits = lint("　読んで身に付けてから、効く。\n「何の話？」\n　効いてから、身に付く。")
+        self.assertNotIn("K30", rules(hits))
 
     def test_short_text_reports_counts_only(self):
         _, hits = lint("　ふと空を見た。まるで嘘のようだった。")
