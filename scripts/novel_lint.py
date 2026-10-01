@@ -1042,7 +1042,7 @@ def repeated_in_window(lines, rx, limit: int, window):
     return out
 
 
-EMOJI = re.compile("[\U0001F000-\U0001FAFF]\uFE0F?|[\u2600-\u27BF\u2B50\u2B55]\uFE0F")      # ♪☆★ など絵文字化していない記号は数えない
+EMOJI = re.compile("[\U0001F1E6-\U0001F1FF]{2}|[0-9#*]\uFE0F?\u20E3|[\U0001F000-\U0001FAFF]\uFE0F?|[\u2600-\u27BF\u2B50\u2B55]\uFE0F")      # ♪☆★ など絵文字化していない記号は数えない
 
 
 def chiasmus_stem(part: str) -> str:
@@ -1084,6 +1084,17 @@ def check_density(doc: Doc, rep: Report):
         rep.add("K00", "INFO", "語彙の癖（掌編・短い断片では密度を警報にしない）",
                 f"全文 {doc.total_chars} 字・地の文 {doc.narr_chars} 字。該当した群と回数だけ示す", found_any,
                 "一つずつ fix / keep を選ぶ。同義語に置き換えず、文の機能を果たし直すか削る")
+    lv = cfg.levels("K30")
+    if not lv.get("off") and lv.get("info"):
+        pairs, run = [], []
+        for p in doc.paras + [None]:      # 台詞・作中文書の段落で区切った地の文の続きの中だけで対にする
+            if p is not None and p["kind"] == "narration":
+                run.extend((p["line"], t) for t, _, tag in p["sents"] if not tag)
+                continue
+            pairs.extend(chiasmus_pairs(run))
+            run = []
+        if len(pairs) >= lv["info"]:
+            rep.add("K30", "INFO", cfg.rule("K30")["name"], f"{len(pairs)} 組", pairs, cfg.rule("K30")["hint"])
     if short_all:
         return
     summary = {}
@@ -1148,11 +1159,6 @@ def check_density(doc: Doc, rep: Report):
         many = [(ln, f"{excerpt(t, 16)}（読点 {t.count('、')}）") for ln, t in sents if t.count("、") >= lv["info"]]
         if many:
             rep.add("K17", "INFO", cfg.rule("K17")["name"], f"{len(many)} 文", many, cfg.rule("K17")["hint"])
-    lv = cfg.levels("K30")
-    if not lv.get("off") and lv.get("info"):
-        pairs = chiasmus_pairs(sents)
-        if len(pairs) >= lv["info"]:
-            rep.add("K30", "INFO", cfg.rule("K30")["name"], f"{len(pairs)} 組", pairs, cfg.rule("K30")["hint"])
 
 
 # ---------------------------------------------------------------------------
